@@ -1,0 +1,42 @@
+#######################################
+# Syntax Coloring Map For DeepSleepScheduler
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+scheduler	KEYWORD1
+TaskTimeout	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+schedule	KEYWORD2
+scheduleDelayed	KEYWORD2
+scheduleAt	KEYWORD2
+scheduleAtFrontOfQueue	KEYWORD2
+removeCallbacks	KEYWORD2
+acquireNoDeepSleepLock	KEYWORD2
+releaseNoDeepSleepLock	KEYWORD2
+doesDeepSleep	KEYWORD2
+setTaskTimeout	KEYWORD2
+getMillis	KEYWORD2
+execute	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
+
+TIMEOUT_15Ms	LITERAL1
+TIMEOUT_30MS	LITERAL1
+TIMEOUT_60MS	LITERAL1
+TIMEOUT_120MS	LITERAL1
+TIMEOUT_250MS	LITERAL1
+TIMEOUT_500MS	LITERAL1
+TIMEOUT_1S	LITERAL1
+TIMEOUT_2S	LITERAL1
+TIMEOUT_4S	LITERAL1
+TIMEOUT_8S	LITERAL1
+NO_SUPERVISION	LITERAL1
