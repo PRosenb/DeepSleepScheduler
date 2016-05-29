@@ -1,8 +1,7 @@
 # Arduino DeepSleepScheduler Library #
 https://github.com/PRosenb/DeepSleepScheduler
 
-## Introduction ##
-DeepSleepScheduler is a lightwight, cooperative task scheduler library with configurable sleep and task supervision.  
+DeepSleepScheduler is a lightweight, cooperative task scheduler library with configurable sleep and task supervision.  
 
 ## Features ##
 - Easy to use
