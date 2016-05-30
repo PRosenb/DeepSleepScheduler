@@ -11,13 +11,19 @@ DeepSleepScheduler is a lightweight, cooperative task scheduler library with con
 - Small footprint
 
 ## Installation ##
-- Go to https://github.com/PRosenb/DeepSleepScheduler
-- Click on **Clone or download** and then **Download ZIP** to save the ZIP file
-- Uncompress the downloaded file
-- This will result in a folder containing all the files for the library, that has a name that includes the branch name, usually **DeepSleepScheduler-master**
-- Rename the folder to **DeepSleepScheduler**
-- Copy the renamed folder to the Arduino sketchbook\\**libraries** folder
-- From time to time, please check on https://github.com/PRosenb/DeepSleepScheduler if updates become available
+- The library can be installed directly in the [Arduino Software (IDE)](https://www.arduino.cc/en/Main/Software) as follows:
+  - Menu Sketch->Include Library->Manage Libraries...
+  - On top right in "Filter your search..." type: DeepSleepScheduler
+  - The DeepSleepScheduler library will show
+  - Click on it and then click "Install"
+  - For more details see manual [Installing Additional Arduino Libraries](https://www.arduino.cc/en/Guide/Libraries#toc3)
+- If you do not use the [Arduino Software (IDE)](https://www.arduino.cc/en/Main/Software):
+  - [Download the latest version](https://github.com/PRosenb/DeepSleepScheduler/releases/latest)
+  - Uncompress the downloaded file
+  - This will result in a folder containing all the files for the library. The folder name includes the version: **DeepSleepScheduler-x.y.z**
+  - Rename the folder to **DeepSleepScheduler**
+  - Copy the renamed folder to your **libraries** folder
+  - From time to time, check on https://github.com/PRosenb/DeepSleepScheduler if updates become available
 
 ## Getting Started ##
 ```c++
@@ -45,7 +51,8 @@ void loop() {
 ```
 
 ## Examples ##
-The following example sketches are included in the **DeepSleepScheduler** library:  
+The following example sketches are included in the **DeepSleepScheduler** library.  
+You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/Main/Software) in menu File->Examples->DeepSleepScheduler.
 - [**Blink**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/Blink/Blink.ino): The simple LED blink example above  
 - [**ScheduleFromInterrupt**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/ScheduleFromInterrupt/ScheduleFromInterrupt.ino): Shows how you can schedule a callback on the main thread from an interrupt  
 - [**ShowSleep**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/ShowSleep/ShowSleep.ino): Shows with the LED, when the CPU is in sleep or awake  
