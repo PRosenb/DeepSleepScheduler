@@ -26,23 +26,62 @@ DeepSleepScheduler is a lightweight, cooperative task scheduler library with con
   - From time to time, check on https://github.com/PRosenb/DeepSleepScheduler if updates become available
 
 ## Getting Started ##
+Simple blink:
 ```c++
 #include <DeepSleepScheduler.h>
 #define LED_PIN 13
 
-void ledOn() {
-  digitalWrite(LED_PIN, HIGH);
-  scheduler.scheduleDelayed(ledOff, 1000);
-}
+bool ledOn = true;
 
-void ledOff() {
-  digitalWrite(LED_PIN, LOW);
-  scheduler.scheduleDelayed(ledOn, 1000);
+void toggleLed() {
+  if (ledOn) {
+    ledOn = false;
+    digitalWrite(LED_PIN, HIGH);
+  } else {
+    ledOn = true;
+    digitalWrite(LED_PIN, LOW);
+  }
+  scheduler.scheduleDelayed(toggleLed, 1000);
 }
 
 void setup() {
   pinMode(LED_PIN, OUTPUT);
-  scheduler.schedule(ledOff);
+  scheduler.schedule(toggleLed);
+}
+
+void loop() {
+  scheduler.execute();
+}
+```
+Simple blink with Runnable:
+```c++
+#include <DeepSleepScheduler.h>
+#define LED_PIN 13
+
+class BlinkRunnable: public Runnable {
+  private:
+    bool ledOn = true;
+    const byte ledPin;
+    const int delay;
+  public:
+    BlinkRunnable(byte ledPin, int delay) : ledPin(ledPin), delay(delay) {
+      pinMode(ledPin, OUTPUT);
+    }
+    virtual void run() {
+      if (ledOn) {
+        ledOn = false;
+        digitalWrite(ledPin, HIGH);
+      } else {
+        ledOn = true;
+        digitalWrite(ledPin, LOW);
+      }
+      scheduler.scheduleDelayed(this, delay);
+    }
+};
+
+void setup() {
+  BlinkRunnable *blinkRunnable = new BlinkRunnable(LED_PIN, 1000);
+  scheduler.schedule(blinkRunnable);
 }
 
 void loop() {
@@ -53,7 +92,8 @@ void loop() {
 ## Examples ##
 The following example sketches are included in the **DeepSleepScheduler** library.  
 You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/Main/Software) in menu File->Examples->DeepSleepScheduler.
-- [**Blink**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/Blink/Blink.ino): The simple LED blink example above  
+- [**Blink**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/Blink/Blink.ino): On other simple LED blink example  
+- [**BlinkRunnable**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/BlinkRunnable/BlinkRunnable.ino): A simple LED blink example using Runnable  
 - [**ScheduleFromInterrupt**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/ScheduleFromInterrupt/ScheduleFromInterrupt.ino): Shows how you can schedule a callback on the main thread from an interrupt  
 - [**ShowSleep**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/ShowSleep/ShowSleep.ino): Shows with the LED, when the CPU is in sleep or awake  
 - [**Supervision**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/Supervision/Supervision.ino): Shows how to activate the task supervision in order to restart the CPU when a task takes too much time  

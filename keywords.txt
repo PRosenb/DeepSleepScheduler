@@ -7,12 +7,14 @@
 #######################################
 
 scheduler	KEYWORD1
+Runnable	KEYWORD1
 TaskTimeout	KEYWORD1
 
 #######################################
 # Methods and Functions (KEYWORD2)
 #######################################
 
+run	KEYWORD2
 schedule	KEYWORD2
 scheduleDelayed	KEYWORD2
 scheduleAt	KEYWORD2

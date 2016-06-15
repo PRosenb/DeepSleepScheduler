@@ -99,6 +99,14 @@ enum TaskTimeout {
   NO_SUPERVISION
 };
 
+/**
+   Extend from Runnable in order to have the run() method run by the scheduler.
+*/
+class Runnable {
+  public:
+    virtual void run() = 0;
+};
+
 class Scheduler {
   public:
     /**
@@ -107,6 +115,12 @@ class Scheduler {
        @param callback: the method to be called on the main thread
     */
     void schedule(void (*callback)());
+    /**
+      Schedule the Runnable as soon as possible but after other tasks
+      that are to be scheduled immediately and are in the queue already.
+      @param runnable: the Runnable on which the run() method will be called on the main thread
+    */
+    void schedule(Runnable *runnable);
 
     /**
        Schedule the callback after delayMillis milliseconds.
@@ -114,6 +128,12 @@ class Scheduler {
        @param delayMillis: the time to wait in milliseconds until the callback shall be made
     */
     void scheduleDelayed(void (*callback)(), unsigned long delayMillis);
+    /**
+      Schedule the callback after delayMillis milliseconds.
+      @param runnable: the Runnable on which the run() method will be called on the main thread
+      @param delayMillis: the time to wait in milliseconds until the callback shall be made
+    */
+    void scheduleDelayed(Runnable *runnable, unsigned long delayMillis);
 
     /**
        Schedule the callback uptimeMillis milliseconds after the device was started.
@@ -122,18 +142,35 @@ class Scheduler {
                             to schedule the callback.
     */
     void scheduleAt(void (*callback)(), unsigned long uptimeMillis);
+    /**
+       Schedule the callback uptimeMillis milliseconds after the device was started.
+       @param runnable: the Runnable on which the run() method will be called on the main thread
+       @param uptimeMillis: the time in milliseconds since the device was started
+                            to schedule the callback.
+    */
+    void scheduleAt(Runnable *runnable, unsigned long uptimeMillis);
 
     /**
        Schedule the callback method as next task even if other tasks are in the queue already.
        @param callback: the method to be called on the main thread
     */
     void scheduleAtFrontOfQueue(void (*callback)());
+    /**
+       Schedule the callback method as next task even if other tasks are in the queue already.
+       @param runnable: the Runnable on which the run() method will be called on the main thread
+    */
+    void scheduleAtFrontOfQueue(Runnable *runnable);
 
     /**
        Cancel all schedules that were scheduled for this callback.
        @param callback: method of which all schedules shall be removed
     */
     void removeCallbacks(void (*callback)());
+    /**
+       Cancel all schedules that were scheduled for this runnable.
+       @param runnable: instance of Runnable of which all schedules shall be removed
+    */
+    void removeCallbacks(Runnable *runnable);
 
     /**
        Acquire a lock to prevent the CPU from entering deep sleep.
@@ -186,12 +223,41 @@ class Scheduler {
   private:
     class Task {
       public:
-        Task(void (*callback)(), const unsigned long scheduledUptimeMillis)
-          : scheduledUptimeMillis(scheduledUptimeMillis), callback(callback), next(NULL) {
+        Task(const unsigned long scheduledUptimeMillis)
+          : scheduledUptimeMillis(scheduledUptimeMillis), next(NULL) {
         }
+        virtual void execute() = 0;
+        // dynamic_cast is not supported by default as it compiles with -fno-rtti
+        // Therefore, we use this method to detect which Task type it is.
+        virtual bool isCallbackTask() = 0;
         const unsigned long scheduledUptimeMillis;
-        void (* const callback)();
         Task *next;
+    };
+    class CallbackTask: public Task {
+      public:
+        CallbackTask(void (*callback)(), const unsigned long scheduledUptimeMillis)
+          : Task(scheduledUptimeMillis), callback(callback) {
+        }
+        virtual void execute() {
+          callback();
+        }
+        virtual bool isCallbackTask() {
+          return true;
+        }
+        void (* const callback)();
+    };
+    class RunnableTask: public Task {
+      public:
+        RunnableTask(Runnable *runnable, const unsigned long scheduledUptimeMillis)
+          : Task(scheduledUptimeMillis), runnable(runnable) {
+        }
+        virtual void execute() {
+          runnable->run();
+        }
+        virtual bool isCallbackTask() {
+          return false;
+        }
+        Runnable * const runnable;
     };
 
     // variables used in the interrupt
@@ -246,22 +312,45 @@ Scheduler::Scheduler() {
 }
 
 void Scheduler::schedule(void (*callback)()) {
-  Task *newTask = new Task(callback, getMillis());
+  Task *newTask = new CallbackTask(callback, getMillis());
+  insertTask(newTask);
+}
+
+void Scheduler::schedule(Runnable *runnable) {
+  Task *newTask = new RunnableTask(runnable, getMillis());
   insertTask(newTask);
 }
 
 void Scheduler::scheduleDelayed(void (*callback)(), unsigned long delayMillis) {
-  Task *newTask = new Task(callback, getMillis() + delayMillis);
+  Task *newTask = new CallbackTask(callback, getMillis() + delayMillis);
+  insertTask(newTask);
+}
+
+void Scheduler::scheduleDelayed(Runnable *runnable, unsigned long delayMillis) {
+  Task *newTask = new RunnableTask(runnable, getMillis() + delayMillis);
   insertTask(newTask);
 }
 
 void Scheduler::scheduleAt(void (*callback)(), unsigned long uptimeMillis) {
-  Task *newTask = new Task(callback, uptimeMillis);
+  Task *newTask = new CallbackTask(callback, uptimeMillis);
+  insertTask(newTask);
+}
+
+void Scheduler::scheduleAt(Runnable *runnable, unsigned long uptimeMillis) {
+  Task *newTask = new RunnableTask(runnable, uptimeMillis);
   insertTask(newTask);
 }
 
 void Scheduler::scheduleAtFrontOfQueue(void (*callback)()) {
-  Task *newTask = new Task(callback, getMillis());
+  Task *newTask = new CallbackTask(callback, getMillis());
+  noInterrupts();
+  newTask->next = first;
+  first = newTask;
+  interrupts();
+}
+
+void Scheduler::scheduleAtFrontOfQueue(Runnable *runnable) {
+  Task *newTask = new RunnableTask(runnable, getMillis());
   noInterrupts();
   newTask->next = first;
   first = newTask;
@@ -274,7 +363,32 @@ void Scheduler::removeCallbacks(void (*callback)()) {
     Task *previousTask = NULL;
     Task *currentTask = first;
     while (currentTask != NULL) {
-      if (currentTask->callback == callback) {
+      if (currentTask->isCallbackTask() && ((CallbackTask*)currentTask)->callback == callback) {
+        Task *taskToDelete = currentTask;
+        if (previousTask == NULL) {
+          // remove the first task
+          first = taskToDelete->next;
+        } else {
+          previousTask->next = taskToDelete->next;
+        }
+        currentTask = taskToDelete->next;
+        delete taskToDelete;
+      } else {
+        previousTask = currentTask;
+        currentTask = currentTask->next;
+      }
+    }
+  }
+  interrupts();
+}
+
+void Scheduler::removeCallbacks(Runnable *runnable) {
+  noInterrupts();
+  if (first != NULL) {
+    Task *previousTask = NULL;
+    Task *currentTask = first;
+    while (currentTask != NULL) {
+      if (!currentTask->isCallbackTask() && ((RunnableTask*)currentTask)->runnable == runnable) {
         Task *taskToDelete = currentTask;
         if (previousTask == NULL) {
           // remove the first task
@@ -355,7 +469,7 @@ void Scheduler::execute() {
 
       if (current != NULL) {
         wdt_reset();
-        current->callback();
+        current->execute();
         delete current;
       } else {
         break;
@@ -503,4 +617,3 @@ ISR (WDT_vect) {
 
 #endif // #ifndef LIBCALL_DEEP_SLEEP_SCHEDULER
 #endif // #ifndef DEEP_SLEEP_SCHEDULER_H
-
