@@ -25,8 +25,6 @@
   - #define SLEEP_TIME_XXX_CORRECTION: When the CPU wakes up from SLEEP_MODE_PWR_DOWN, it needs some cycles to get active. This is also dependent on
     the used CPU type. Using the constants SLEEP_TIME_15MS_CORRECTION to SLEEP_TIME_8S_CORRECTION you can define more exact values for your
     CPU. Please report values back to me if you do some measuring, thanks.
-  - #define QUEUE_OVERFLOW_PROTECTION: Prevents, that the same callback is scheduled multiple times what may happen with repeated interrupts. When QUEUE_OVERFLOW_PROTECTION
-    is set, the new insert callback is ignored, if an other one is found BEFORE the new one should be insert (due to optimisation).
 */
 
 #ifndef DEEP_SLEEP_SCHEDULER_H
@@ -316,9 +314,6 @@ void Scheduler::setTaskTimeout(TaskTimeout taskTimeout) {
 }
 
 // Inserts a new task in the ordered lists of tasks.
-// QUEUE_OVERFLOW_PROTECTION: If there is a task in the list with the
-// same callback before the position where the new task is to be insert
-// the new task is ignored to prevent queue overflow.
 void Scheduler::insertTask(Task *newTask) {
   noInterrupts();
   if (first == NULL) {
@@ -331,26 +326,12 @@ void Scheduler::insertTask(Task *newTask) {
     } else {
       Task *currentTask = first;
       while (currentTask->next != NULL
-             && currentTask->next->scheduledUptimeMillis <= newTask->scheduledUptimeMillis
-#ifdef QUEUE_OVERFLOW_PROTECTION
-             && currentTask->callback != newTask->callback
-#endif
-            ) {
+             && currentTask->next->scheduledUptimeMillis <= newTask->scheduledUptimeMillis) {
         currentTask = currentTask->next;
       }
-#ifdef QUEUE_OVERFLOW_PROTECTION
-      if (currentTask->callback != newTask->callback) {
-#endif
-        // insert after currentTask
-        newTask->next = currentTask->next;
-        currentTask->next = newTask;
-#ifdef QUEUE_OVERFLOW_PROTECTION
-      } else {
-        // a task with the same callback exists before the location where the new one should be insert
-        // ignore the new task
-        delete newTask;
-      }
-#endif
+      // insert after currentTask
+      newTask->next = currentTask->next;
+      currentTask->next = newTask;
     }
   }
   interrupts();
