@@ -162,6 +162,22 @@ class Scheduler {
     void scheduleAtFrontOfQueue(Runnable *runnable);
 
     /**
+       Check if this callback is scheduled at least once already.
+       This method can be called in an interrupt but bear in mind, that it loops through
+       the run queue until it finds it or reaches the end.
+       @param callback: callback to check
+    */
+    boolean isScheduled(void (*callback)());
+
+    /**
+       Check if this runnable is scheduled at least once already.
+       This method can be called in an interrupt but bear in mind, that it loops through
+       the run queue until it finds it or reaches the end.
+      @param runnable: Runnable to check
+    */
+    bool isScheduled(Runnable *runnable);
+
+    /**
        Cancel all schedules that were scheduled for this callback.
        @param callback: method of which all schedules shall be removed
     */
@@ -200,7 +216,9 @@ class Scheduler {
     void setTaskTimeout(TaskTimeout taskTimeout);
 
     /**
-       return: The milliseconds since startup of the device where the sleep time was added
+       return: The milliseconds since startup of the device where the sleep time was added.
+               This value does not consider the time when the CPU is in infinite deep sleep
+               while nothing is in the queue.
     */
     inline unsigned long getMillis() {
       return millis() + millisInDeepSleep;
@@ -355,6 +373,36 @@ void Scheduler::scheduleAtFrontOfQueue(Runnable *runnable) {
   newTask->next = first;
   first = newTask;
   interrupts();
+}
+
+bool Scheduler::isScheduled(void (*callback)()) {
+  bool scheduled = false;
+  noInterrupts();
+  Task *currentTask = first;
+  while (currentTask != NULL) {
+    if (currentTask->isCallbackTask() && ((CallbackTask*)currentTask)->callback == callback) {
+      scheduled = true;
+      break;
+    }
+    currentTask = currentTask->next;
+  }
+  interrupts();
+  return scheduled;
+}
+
+bool Scheduler::isScheduled(Runnable *runnable) {
+  bool scheduled = false;
+  noInterrupts();
+  Task *currentTask = first;
+  while (currentTask != NULL) {
+    if (!currentTask->isCallbackTask() && ((RunnableTask*)currentTask)->runnable == runnable) {
+      scheduled = true;
+      break;
+    }
+    currentTask = currentTask->next;
+  }
+  interrupts();
+  return scheduled;
 }
 
 void Scheduler::removeCallbacks(void (*callback)()) {
