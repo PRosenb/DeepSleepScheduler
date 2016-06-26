@@ -19,8 +19,9 @@
 
   The following options are available:
   - #define LIBCALL_DEEP_SLEEP_SCHEDULER: This h file can only be included once within a project as it also contains the implementation.
-    To use it in multiple files, define LIBCALL_DEEP_SLEEP_SCHEDULER before all include statements except one
+    To use it in multiple files, define LIBCALL_DEEP_SLEEP_SCHEDULER before all include statements except one.
   All following options are to be set before the include where no LIBCALL_DEEP_SLEEP_SCHEDULER is defined.
+  - #define DEEP_SLEEP_DELAY: Prevent the CPU from entering SLEEP_MODE_PWR_DOWN for the specified amount of milli seconds after finishing the previous task.
   - #define AWAKE_INDICATION_PIN: Show on a LED if the CPU is active or in sleep mode. HIGH = active, LOW = sleeping.
   - #define SLEEP_TIME_XXX_CORRECTION: When the CPU wakes up from SLEEP_MODE_PWR_DOWN, it needs some cycles to get active. This is also dependent on
     the used CPU type. Using the constants SLEEP_TIME_15MS_CORRECTION to SLEEP_TIME_8S_CORRECTION you can define more exact values for your
@@ -300,6 +301,13 @@ class Scheduler {
        controls if deep sleep is done, 0 does deep sleep
     */
     byte noDeepSleepLocksCount;
+#ifdef DEEP_SLEEP_DELAY
+    /**
+       The time in millis since start up when the last task finished.
+       Used to delay deep sleep.
+    */
+    unsigned long lastTaskFinishedMillis;
+#endif
 
     void insertTask(Task *task);
     inline bool evaluateAndPrepareSleep();
@@ -367,30 +375,30 @@ void Scheduler::scheduleAt(Runnable *runnable, unsigned long uptimeMillis) {
 void Scheduler::scheduleAtFrontOfQueue(void (*callback)()) {
   Task *newTask = new CallbackTask(callback, getMillis());
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-  newTask->next = first;
-  first = newTask;
+    newTask->next = first;
+    first = newTask;
   }
 }
 
 void Scheduler::scheduleAtFrontOfQueue(Runnable *runnable) {
   Task *newTask = new RunnableTask(runnable, getMillis());
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-  newTask->next = first;
-  first = newTask;
+    newTask->next = first;
+    first = newTask;
   }
 }
 
 bool Scheduler::isScheduled(void (*callback)()) {
   bool scheduled = false;
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-  Task *currentTask = first;
-  while (currentTask != NULL) {
-    if (currentTask->isCallbackTask() && ((CallbackTask*)currentTask)->callback == callback) {
-      scheduled = true;
-      break;
+    Task *currentTask = first;
+    while (currentTask != NULL) {
+      if (currentTask->isCallbackTask() && ((CallbackTask*)currentTask)->callback == callback) {
+        scheduled = true;
+        break;
+      }
+      currentTask = currentTask->next;
     }
-    currentTask = currentTask->next;
-  }
   }
   return scheduled;
 }
@@ -398,65 +406,65 @@ bool Scheduler::isScheduled(void (*callback)()) {
 bool Scheduler::isScheduled(Runnable *runnable) {
   bool scheduled = false;
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-  Task *currentTask = first;
-  while (currentTask != NULL) {
-    if (!currentTask->isCallbackTask() && ((RunnableTask*)currentTask)->runnable == runnable) {
-      scheduled = true;
-      break;
+    Task *currentTask = first;
+    while (currentTask != NULL) {
+      if (!currentTask->isCallbackTask() && ((RunnableTask*)currentTask)->runnable == runnable) {
+        scheduled = true;
+        break;
+      }
+      currentTask = currentTask->next;
     }
-    currentTask = currentTask->next;
-  }
   }
   return scheduled;
 }
 
 void Scheduler::removeCallbacks(void (*callback)()) {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-  if (first != NULL) {
-    Task *previousTask = NULL;
-    Task *currentTask = first;
-    while (currentTask != NULL) {
-      if (currentTask->isCallbackTask() && ((CallbackTask*)currentTask)->callback == callback) {
-        Task *taskToDelete = currentTask;
-        if (previousTask == NULL) {
-          // remove the first task
-          first = taskToDelete->next;
+    if (first != NULL) {
+      Task *previousTask = NULL;
+      Task *currentTask = first;
+      while (currentTask != NULL) {
+        if (currentTask->isCallbackTask() && ((CallbackTask*)currentTask)->callback == callback) {
+          Task *taskToDelete = currentTask;
+          if (previousTask == NULL) {
+            // remove the first task
+            first = taskToDelete->next;
+          } else {
+            previousTask->next = taskToDelete->next;
+          }
+          currentTask = taskToDelete->next;
+          delete taskToDelete;
         } else {
-          previousTask->next = taskToDelete->next;
+          previousTask = currentTask;
+          currentTask = currentTask->next;
         }
-        currentTask = taskToDelete->next;
-        delete taskToDelete;
-      } else {
-        previousTask = currentTask;
-        currentTask = currentTask->next;
       }
     }
-  }
   }
 }
 
 void Scheduler::removeCallbacks(Runnable *runnable) {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-  if (first != NULL) {
-    Task *previousTask = NULL;
-    Task *currentTask = first;
-    while (currentTask != NULL) {
-      if (!currentTask->isCallbackTask() && ((RunnableTask*)currentTask)->runnable == runnable) {
-        Task *taskToDelete = currentTask;
-        if (previousTask == NULL) {
-          // remove the first task
-          first = taskToDelete->next;
+    if (first != NULL) {
+      Task *previousTask = NULL;
+      Task *currentTask = first;
+      while (currentTask != NULL) {
+        if (!currentTask->isCallbackTask() && ((RunnableTask*)currentTask)->runnable == runnable) {
+          Task *taskToDelete = currentTask;
+          if (previousTask == NULL) {
+            // remove the first task
+            first = taskToDelete->next;
+          } else {
+            previousTask->next = taskToDelete->next;
+          }
+          currentTask = taskToDelete->next;
+          delete taskToDelete;
         } else {
-          previousTask->next = taskToDelete->next;
+          previousTask = currentTask;
+          currentTask = currentTask->next;
         }
-        currentTask = taskToDelete->next;
-        delete taskToDelete;
-      } else {
-        previousTask = currentTask;
-        currentTask = currentTask->next;
       }
     }
-  }
   }
 }
 
@@ -476,31 +484,31 @@ bool Scheduler::doesDeepSleep() {
 
 void Scheduler::setTaskTimeout(TaskTimeout taskTimeout) {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-  this->taskTimeout = taskTimeout;
+    this->taskTimeout = taskTimeout;
   }
 }
 
 // Inserts a new task in the ordered lists of tasks.
 void Scheduler::insertTask(Task *newTask) {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-  if (first == NULL) {
-    first = newTask;
-  } else {
-    if (first->scheduledUptimeMillis > newTask->scheduledUptimeMillis) {
-      // insert before first
-      newTask->next = first;
+    if (first == NULL) {
       first = newTask;
     } else {
-      Task *currentTask = first;
-      while (currentTask->next != NULL
-             && currentTask->next->scheduledUptimeMillis <= newTask->scheduledUptimeMillis) {
-        currentTask = currentTask->next;
+      if (first->scheduledUptimeMillis > newTask->scheduledUptimeMillis) {
+        // insert before first
+        newTask->next = first;
+        first = newTask;
+      } else {
+        Task *currentTask = first;
+        while (currentTask->next != NULL
+               && currentTask->next->scheduledUptimeMillis <= newTask->scheduledUptimeMillis) {
+          currentTask = currentTask->next;
+        }
+        // insert after currentTask
+        newTask->next = currentTask->next;
+        currentTask->next = newTask;
       }
-      // insert after currentTask
-      newTask->next = currentTask->next;
-      currentTask->next = newTask;
     }
-  }
   }
 }
 
@@ -523,6 +531,10 @@ void Scheduler::execute() {
       if (current != NULL) {
         wdt_reset();
         current->execute();
+#ifdef DEEP_SLEEP_DELAY
+        // use millis() instead of getMillis() because getMillis() may be manipulated by our WTD interrupt.
+        lastTaskFinishedMillis = millis();
+#endif
         delete current;
       } else {
         break;
@@ -544,7 +556,11 @@ void Scheduler::execute() {
     } else {
       // nothing in the queue
       sleep = true;
-      if (doesDeepSleep()) {
+      if (doesDeepSleep()
+#ifdef DEEP_SLEEP_DELAY
+          && millis() >= lastTaskFinishedMillis + DEEP_SLEEP_DELAY
+#endif
+         ) {
         wdt_disable();
         set_sleep_mode(SLEEP_MODE_PWR_DOWN);
       } else {
@@ -600,7 +616,7 @@ bool Scheduler::evaluateAndPrepareSleep() {
     noInterrupts();
     unsigned long firstScheduledUptimeMillis = 0;
     if (first != NULL) {
-        firstScheduledUptimeMillis = first->scheduledUptimeMillis;
+      firstScheduledUptimeMillis = first->scheduledUptimeMillis;
     }
     interrupts();
     if (firstScheduledUptimeMillis > currentSchedulerMillis) {
@@ -608,7 +624,11 @@ bool Scheduler::evaluateAndPrepareSleep() {
     }
     if (maxWaitTimeMillis == 0) {
       sleep = false;
-    } else if (!doesDeepSleep() || maxWaitTimeMillis < SLEEP_TIME_1S + BUFFER_TIME) {
+    } else if (!doesDeepSleep() || maxWaitTimeMillis < SLEEP_TIME_1S + BUFFER_TIME
+#ifdef DEEP_SLEEP_DELAY
+               || millis() < lastTaskFinishedMillis + DEEP_SLEEP_DELAY
+#endif
+              ) {
       // use SLEEP_MODE_IDLE for values less then SLEEP_TIME_1S
       sleep = true;
       set_sleep_mode(SLEEP_MODE_IDLE);
@@ -664,6 +684,16 @@ bool Scheduler::evaluateAndPrepareSleep() {
     // We cannot handle the case when the other interrupt scheduled a task between now and before the WDT interrupt occurs
     // because we don't know for how long the WDT is running already.
     // In that case, the task will be run delayed but as first task when the WDT interrupt occurs.
+
+#ifdef DEEP_SLEEP_DELAY
+    // The CPU was woken up by an interrupt other than WDT.
+    // The interrupt may have scheduled a task to run immediatelly. In that case we delay deep sleep.
+    if (millis() < lastTaskFinishedMillis + DEEP_SLEEP_DELAY) {
+      set_sleep_mode(SLEEP_MODE_IDLE);
+    } else {
+      set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+    }
+#endif
   }
   return sleep;
 }
@@ -682,3 +712,4 @@ ISR (WDT_vect) {
 
 #endif // #ifndef LIBCALL_DEEP_SLEEP_SCHEDULER
 #endif // #ifndef DEEP_SLEEP_SCHEDULER_H
+
