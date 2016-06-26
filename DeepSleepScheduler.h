@@ -36,6 +36,7 @@
 #include <Arduino.h>
 #include <avr/sleep.h>
 #include <avr/wdt.h>
+#include <util/atomic.h>
 
 // values changeable by the user
 #ifndef SLEEP_TIME_15MS_CORRECTION
@@ -221,7 +222,11 @@ class Scheduler {
                while nothing is in the queue.
     */
     inline unsigned long getMillis() {
-      return millis() + millisInDeepSleep;
+      unsigned long value;
+      ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
+        value = millis() + millisInDeepSleep;
+      }
+      return value;
     }
 
     /**
@@ -361,23 +366,23 @@ void Scheduler::scheduleAt(Runnable *runnable, unsigned long uptimeMillis) {
 
 void Scheduler::scheduleAtFrontOfQueue(void (*callback)()) {
   Task *newTask = new CallbackTask(callback, getMillis());
-  noInterrupts();
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
   newTask->next = first;
   first = newTask;
-  interrupts();
+  }
 }
 
 void Scheduler::scheduleAtFrontOfQueue(Runnable *runnable) {
   Task *newTask = new RunnableTask(runnable, getMillis());
-  noInterrupts();
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
   newTask->next = first;
   first = newTask;
-  interrupts();
+  }
 }
 
 bool Scheduler::isScheduled(void (*callback)()) {
   bool scheduled = false;
-  noInterrupts();
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
   Task *currentTask = first;
   while (currentTask != NULL) {
     if (currentTask->isCallbackTask() && ((CallbackTask*)currentTask)->callback == callback) {
@@ -386,13 +391,13 @@ bool Scheduler::isScheduled(void (*callback)()) {
     }
     currentTask = currentTask->next;
   }
-  interrupts();
+  }
   return scheduled;
 }
 
 bool Scheduler::isScheduled(Runnable *runnable) {
   bool scheduled = false;
-  noInterrupts();
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
   Task *currentTask = first;
   while (currentTask != NULL) {
     if (!currentTask->isCallbackTask() && ((RunnableTask*)currentTask)->runnable == runnable) {
@@ -401,12 +406,12 @@ bool Scheduler::isScheduled(Runnable *runnable) {
     }
     currentTask = currentTask->next;
   }
-  interrupts();
+  }
   return scheduled;
 }
 
 void Scheduler::removeCallbacks(void (*callback)()) {
-  noInterrupts();
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
   if (first != NULL) {
     Task *previousTask = NULL;
     Task *currentTask = first;
@@ -427,11 +432,11 @@ void Scheduler::removeCallbacks(void (*callback)()) {
       }
     }
   }
-  interrupts();
+  }
 }
 
 void Scheduler::removeCallbacks(Runnable *runnable) {
-  noInterrupts();
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
   if (first != NULL) {
     Task *previousTask = NULL;
     Task *currentTask = first;
@@ -452,7 +457,7 @@ void Scheduler::removeCallbacks(Runnable *runnable) {
       }
     }
   }
-  interrupts();
+  }
 }
 
 void Scheduler::acquireNoDeepSleepLock() {
@@ -470,14 +475,14 @@ bool Scheduler::doesDeepSleep() {
 }
 
 void Scheduler::setTaskTimeout(TaskTimeout taskTimeout) {
-  noInterrupts();
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
   this->taskTimeout = taskTimeout;
-  interrupts();
+  }
 }
 
 // Inserts a new task in the ordered lists of tasks.
 void Scheduler::insertTask(Task *newTask) {
-  noInterrupts();
+  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
   if (first == NULL) {
     first = newTask;
   } else {
@@ -496,7 +501,7 @@ void Scheduler::insertTask(Task *newTask) {
       currentTask->next = newTask;
     }
   }
-  interrupts();
+  }
 }
 
 void Scheduler::execute() {
@@ -531,7 +536,10 @@ void Scheduler::execute() {
     // but continue execution immediatelly.
     sleep_enable(); // enables the sleep bit, a safety pin
     bool sleep;
-    if (first != NULL) {
+    noInterrupts();
+    bool queueEmpty = first == NULL;
+    interrupts();
+    if (!queueEmpty) {
       sleep = evaluateAndPrepareSleep();
     } else {
       // nothing in the queue
@@ -590,7 +598,10 @@ bool Scheduler::evaluateAndPrepareSleep() {
     unsigned long maxWaitTimeMillis = 0;
     unsigned long currentSchedulerMillis = getMillis();
     noInterrupts();
-    unsigned long firstScheduledUptimeMillis = first->scheduledUptimeMillis;
+    unsigned long firstScheduledUptimeMillis = 0;
+    if (first != NULL) {
+        firstScheduledUptimeMillis = first->scheduledUptimeMillis;
+    }
     interrupts();
     if (firstScheduledUptimeMillis > currentSchedulerMillis) {
       maxWaitTimeMillis = firstScheduledUptimeMillis - currentSchedulerMillis;
@@ -606,47 +617,53 @@ bool Scheduler::evaluateAndPrepareSleep() {
       set_sleep_mode(SLEEP_MODE_PWR_DOWN);
 
       if (maxWaitTimeMillis >= SLEEP_TIME_8S + BUFFER_TIME) {
-        wdtSleepTimeMillis = SLEEP_TIME_8S;
+        wdtSleepTimeMillisLocal = SLEEP_TIME_8S;
         wdt_enable(WDTO_8S);
       } else if (maxWaitTimeMillis >= SLEEP_TIME_4S + BUFFER_TIME) {
-        wdtSleepTimeMillis = SLEEP_TIME_4S;
+        wdtSleepTimeMillisLocal = SLEEP_TIME_4S;
         wdt_enable(WDTO_4S);
       } else if (maxWaitTimeMillis >= SLEEP_TIME_2S + BUFFER_TIME) {
-        wdtSleepTimeMillis = SLEEP_TIME_2S;
+        wdtSleepTimeMillisLocal = SLEEP_TIME_2S;
         wdt_enable(WDTO_2S);
       } else if (maxWaitTimeMillis >= SLEEP_TIME_1S + BUFFER_TIME) {
-        wdtSleepTimeMillis = SLEEP_TIME_1S;
+        wdtSleepTimeMillisLocal = SLEEP_TIME_1S;
         wdt_enable(WDTO_1S);
       } else if (maxWaitTimeMillis >= SLEEP_TIME_500MS + BUFFER_TIME) {
-        wdtSleepTimeMillis = SLEEP_TIME_500MS;
+        wdtSleepTimeMillisLocal = SLEEP_TIME_500MS;
         wdt_enable(WDTO_500MS);
       } else if (maxWaitTimeMillis >= SLEEP_TIME_250MS + BUFFER_TIME) {
-        wdtSleepTimeMillis = SLEEP_TIME_250MS;
+        wdtSleepTimeMillisLocal = SLEEP_TIME_250MS;
         wdt_enable(WDTO_250MS);
       } else if (maxWaitTimeMillis >= SLEEP_TIME_120MS + BUFFER_TIME) {
-        wdtSleepTimeMillis = SLEEP_TIME_120MS;
+        wdtSleepTimeMillisLocal = SLEEP_TIME_120MS;
         wdt_enable(WDTO_120MS);
       } else if (maxWaitTimeMillis >= SLEEP_TIME_60MS + BUFFER_TIME) {
-        wdtSleepTimeMillis = SLEEP_TIME_60MS;
+        wdtSleepTimeMillisLocal = SLEEP_TIME_60MS;
         wdt_enable(WDTO_60MS);
       } else if (maxWaitTimeMillis >= SLEEP_TIME_30MS + BUFFER_TIME) {
-        wdtSleepTimeMillis = SLEEP_TIME_30MS;
+        wdtSleepTimeMillisLocal = SLEEP_TIME_30MS;
         wdt_enable(WDTO_30MS);
       } else { // maxWaitTimeMs >= 17
-        wdtSleepTimeMillis = SLEEP_TIME_15MS;
+        wdtSleepTimeMillisLocal = SLEEP_TIME_15MS;
         wdt_enable(WDTO_15MS);
       }
 
+      noInterrupts();
+      wdtSleepTimeMillis = wdtSleepTimeMillisLocal;
       // enable interrupt
       // first timeout will be the interrupt, second system reset
       WDTCSR |= (1 << WDCE) | (1 << WDIE);
       millisBeforeDeepSleep = millis();
+      interrupts();
     }
   } else {
-    // wdt already running, so we woke up due to an other interrupt
+    // wdt already running, so we woke up due to an other interrupt then WDT.
     // continue sleepting without enabling wdt again
     sleep = true;
     WDTCSR |= (1 << WDCE) | (1 << WDIE);
+    // We cannot handle the case when the other interrupt scheduled a task between now and before the WDT interrupt occurs
+    // because we don't know for how long the WDT is running already.
+    // In that case, the task will be run delayed but as first task when the WDT interrupt occurs.
   }
   return sleep;
 }
