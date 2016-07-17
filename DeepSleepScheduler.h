@@ -169,7 +169,7 @@ class Scheduler {
        the run queue until it finds it or reaches the end.
        @param callback: callback to check
     */
-    boolean isScheduled(void (*callback)());
+    bool isScheduled(void (*callback)());
 
     /**
        Check if this runnable is scheduled at least once already.

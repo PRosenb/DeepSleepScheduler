@@ -109,6 +109,12 @@ You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/
        @param callback: the method to be called on the main thread
     */
     void schedule(void (*callback)());
+    /**
+      Schedule the Runnable as soon as possible but after other tasks
+      that are to be scheduled immediately and are in the queue already.
+      @param runnable: the Runnable on which the run() method will be called on the main thread
+    */
+    void schedule(Runnable *runnable);
 
     /**
        Schedule the callback after delayMillis milliseconds.
@@ -116,6 +122,12 @@ You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/
        @param delayMillis: the time to wait in milliseconds until the callback shall be made
     */
     void scheduleDelayed(void (*callback)(), unsigned long delayMillis);
+    /**
+      Schedule the callback after delayMillis milliseconds.
+      @param runnable: the Runnable on which the run() method will be called on the main thread
+      @param delayMillis: the time to wait in milliseconds until the callback shall be made
+    */
+    void scheduleDelayed(Runnable *runnable, unsigned long delayMillis);
 
     /**
        Schedule the callback uptimeMillis milliseconds after the device was started.
@@ -124,18 +136,51 @@ You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/
                             to schedule the callback.
     */
     void scheduleAt(void (*callback)(), unsigned long uptimeMillis);
+    /**
+       Schedule the callback uptimeMillis milliseconds after the device was started.
+       @param runnable: the Runnable on which the run() method will be called on the main thread
+       @param uptimeMillis: the time in milliseconds since the device was started
+                            to schedule the callback.
+    */
+    void scheduleAt(Runnable *runnable, unsigned long uptimeMillis);
 
     /**
        Schedule the callback method as next task even if other tasks are in the queue already.
        @param callback: the method to be called on the main thread
     */
     void scheduleAtFrontOfQueue(void (*callback)());
+    /**
+       Schedule the callback method as next task even if other tasks are in the queue already.
+       @param runnable: the Runnable on which the run() method will be called on the main thread
+    */
+    void scheduleAtFrontOfQueue(Runnable *runnable);
+
+    /**
+       Check if this callback is scheduled at least once already.
+       This method can be called in an interrupt but bear in mind, that it loops through
+       the run queue until it finds it or reaches the end.
+       @param callback: callback to check
+    */
+    bool isScheduled(void (*callback)());
+
+    /**
+       Check if this runnable is scheduled at least once already.
+       This method can be called in an interrupt but bear in mind, that it loops through
+       the run queue until it finds it or reaches the end.
+      @param runnable: Runnable to check
+    */
+    bool isScheduled(Runnable *runnable);
 
     /**
        Cancel all schedules that were scheduled for this callback.
        @param callback: method of which all schedules shall be removed
     */
     void removeCallbacks(void (*callback)());
+    /**
+       Cancel all schedules that were scheduled for this runnable.
+       @param runnable: instance of Runnable of which all schedules shall be removed
+    */
+    void removeCallbacks(Runnable *runnable);
 
     /**
        Acquire a lock to prevent the CPU from entering deep sleep.
@@ -165,7 +210,9 @@ You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/
     void setTaskTimeout(TaskTimeout taskTimeout);
 
     /**
-       return: The milliseconds since startup of the device where the sleep time was added
+       return: The milliseconds since startup of the device where the sleep time was added.
+               This value does not consider the time when the CPU is in infinite deep sleep
+               while nothing is in the queue.
     */
     unsigned long getMillis();
 
@@ -196,10 +243,10 @@ enum TaskTimeout {
 - `#define LIBCALL_DEEP_SLEEP_SCHEDULER`: The header file contains definition and implementation. For that reason, it can be included once only in a project. To use it in multiple files, define `LIBCALL_DEEP_SLEEP_SCHEDULER` before all include statements except one.
 
 All following options are to be set before the include where **no** `LIBCALL_DEEP_SLEEP_SCHEDULER` is defined:
+- `#define DEEP_SLEEP_DELAY`: Prevent the CPU from entering SLEEP_MODE_PWR_DOWN for the specified amount of milliseconds after finishing the previous task.
 - `#define AWAKE_INDICATION_PIN`: Show on a LED if the CPU is active or in sleep mode.  
 HIGH = active, LOW = sleeping
 - `#define SLEEP_TIME_XXX_CORRECTION`: Adjust the sleep time correction for the time when the CPU is in `SLEEP_MODE_PWR_DOWN` and waking up. See [Implementation Notes](#implementation-notes) and example [AdjustSleepTimeCorrections](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/AdjustSleepTimeCorrections/AdjustSleepTimeCorrections.ino).
-- `#define QUEUE_OVERFLOW_PROTECTION`: Prevents, that the same callback is scheduled multiple times what may happen with repeated interrupts. When `QUEUE_OVERFLOW_PROTECTION` is set, the new insert callback is ignored, if an other one is found **before** the new one should be insert (due to optimisation).
 
 ## Implementation Notes ##
 - The watchdog timer is used to wake the CPU up from `SLEEP_MODE_PWR_DOWN` and for task supervision. It can therefore not be used for other means.
