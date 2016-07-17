@@ -298,6 +298,13 @@ class Scheduler {
     */
     Task *first;
     /**
+       Stores the time of the task from which the sleep time of the WDT is
+       calculated when it is put to sleep.
+       In case an interrupt schedules a new time, this time is compared against
+       it to check if the new time is before the WDT would wake up anyway.
+    */
+    unsigned long firstRegularlyScheduledUptimeAfterSleep;
+    /**
        controls if deep sleep is done, 0 does deep sleep
     */
     byte noDeepSleepLocksCount;
@@ -339,6 +346,7 @@ Scheduler::Scheduler() {
   wdtSleepTimeMillis = 0;
 
   first = NULL;
+  firstRegularlyScheduledUptimeAfterSleep = 0;
   noDeepSleepLocksCount = 0;
 }
 
@@ -606,22 +614,22 @@ bool Scheduler::evaluateAndPrepareSleep() {
 
   noInterrupts();
   unsigned long wdtSleepTimeMillisLocal = wdtSleepTimeMillis;
+  unsigned long currentSchedulerMillis = getMillis();
+
+  unsigned long firstScheduledUptimeMillis = 0;
+  if (first != NULL) {
+    firstScheduledUptimeMillis = first->scheduledUptimeMillis;
+  }
   interrupts();
 
   if (wdtSleepTimeMillisLocal == 0) {
     // not woken up during WDT sleep
 
     unsigned long maxWaitTimeMillis = 0;
-    unsigned long currentSchedulerMillis = getMillis();
-    noInterrupts();
-    unsigned long firstScheduledUptimeMillis = 0;
-    if (first != NULL) {
-      firstScheduledUptimeMillis = first->scheduledUptimeMillis;
-    }
-    interrupts();
     if (firstScheduledUptimeMillis > currentSchedulerMillis) {
       maxWaitTimeMillis = firstScheduledUptimeMillis - currentSchedulerMillis;
     }
+
     if (maxWaitTimeMillis == 0) {
       sleep = false;
     } else if (!doesDeepSleep() || maxWaitTimeMillis < SLEEP_TIME_1S + BUFFER_TIME
@@ -635,6 +643,7 @@ bool Scheduler::evaluateAndPrepareSleep() {
     } else {
       sleep = true;
       set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+      firstRegularlyScheduledUptimeAfterSleep = firstScheduledUptimeMillis;
 
       if (maxWaitTimeMillis >= SLEEP_TIME_8S + BUFFER_TIME) {
         wdtSleepTimeMillisLocal = SLEEP_TIME_8S;
@@ -681,19 +690,24 @@ bool Scheduler::evaluateAndPrepareSleep() {
     // continue sleepting without enabling wdt again
     sleep = true;
     WDTCSR |= (1 << WDCE) | (1 << WDIE);
-    // We cannot handle the case when the other interrupt scheduled a task between now and before the WDT interrupt occurs
-    // because we don't know for how long the WDT is running already.
-    // In that case, the task will be run delayed but as first task when the WDT interrupt occurs.
+    // A special case is when the other interrupt scheduled a task between now and before the WDT interrupt occurs.
+    // In this case, we prevent SLEEP_MODE_PWR_DOWN until it is scheduled.
+    // If the WDT interrupt occurs before that, it is executed earlier as expected because getMillis() will be
+    // corrected when the WTD occurs.
 
-#ifdef DEEP_SLEEP_DELAY
-    // The CPU was woken up by an interrupt other than WDT.
-    // The interrupt may have scheduled a task to run immediatelly. In that case we delay deep sleep.
-    if (millis() < lastTaskFinishedMillis + DEEP_SLEEP_DELAY) {
+    if (firstScheduledUptimeMillis < firstRegularlyScheduledUptimeAfterSleep) {
       set_sleep_mode(SLEEP_MODE_IDLE);
     } else {
-      set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-    }
+#ifdef DEEP_SLEEP_DELAY
+      // The CPU was woken up by an interrupt other than WDT.
+      // The interrupt may have scheduled a task to run immediatelly. In that case we delay deep sleep.
+      if (millis() < lastTaskFinishedMillis + DEEP_SLEEP_DELAY) {
+        set_sleep_mode(SLEEP_MODE_IDLE);
+      } else {
+        set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+      }
 #endif
+    }
   }
   return sleep;
 }
