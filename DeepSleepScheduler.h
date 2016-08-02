@@ -173,7 +173,7 @@ class Scheduler {
        the run queue until it finds it or reaches the end.
        @param callback: callback to check
     */
-    bool isScheduled(void (*callback)());
+    bool isScheduled(void (*callback)()) const;
 
     /**
        Check if this runnable is scheduled at least once already.
@@ -181,13 +181,13 @@ class Scheduler {
        the run queue until it finds it or reaches the end.
       @param runnable: Runnable to check
     */
-    bool isScheduled(Runnable *runnable);
+    bool isScheduled(Runnable *runnable) const;
 
     /**
        Returns the scheduled time of the task that is currently running.
        If no task is currently running, -1 is returned.
     */
-    unsigned long getScheduleTimeOfCurrentTask();
+    unsigned long getScheduleTimeOfCurrentTask() const;
 
     /**
        Cancel all schedules that were scheduled for this callback.
@@ -218,7 +218,7 @@ class Scheduler {
     /**
        return: true if the CPU is currently allowed to enter deep sleep, false otherwise.
     */
-    bool doesDeepSleep();
+    bool doesDeepSleep() const;
 
     /**
        Configure the supervision of future tasks. Can be deactivated with NO_SUPERVISION.
@@ -232,7 +232,7 @@ class Scheduler {
                This value does not consider the time when the CPU is in infinite deep sleep
                while nothing is in the queue.
     */
-    inline unsigned long getMillis() {
+    inline unsigned long getMillis() const {
       unsigned long value;
       ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
         value = millis() + millisInDeepSleep;
@@ -411,7 +411,7 @@ void Scheduler::scheduleAtFrontOfQueue(Runnable *runnable) {
   }
 }
 
-bool Scheduler::isScheduled(void (*callback)()) {
+bool Scheduler::isScheduled(void (*callback)()) const {
   bool scheduled = false;
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     Task *currentTask = first;
@@ -426,7 +426,7 @@ bool Scheduler::isScheduled(void (*callback)()) {
   return scheduled;
 }
 
-bool Scheduler::isScheduled(Runnable *runnable) {
+bool Scheduler::isScheduled(Runnable *runnable) const {
   bool scheduled = false;
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     Task *currentTask = first;
@@ -441,7 +441,7 @@ bool Scheduler::isScheduled(Runnable *runnable) {
   return scheduled;
 }
 
-unsigned long Scheduler::getScheduleTimeOfCurrentTask() {
+unsigned long Scheduler::getScheduleTimeOfCurrentTask() const {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     if (current != NULL) {
       return current->scheduledUptimeMillis;
@@ -511,7 +511,7 @@ void Scheduler::releaseNoDeepSleepLock() {
   }
 }
 
-bool Scheduler::doesDeepSleep() {
+bool Scheduler::doesDeepSleep() const {
   return noDeepSleepLocksCount == 0;
 }
 
