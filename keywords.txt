@@ -19,6 +19,8 @@ schedule	KEYWORD2
 scheduleDelayed	KEYWORD2
 scheduleAt	KEYWORD2
 scheduleAtFrontOfQueue	KEYWORD2
+isScheduled	KEYWORD2
+getScheduleTimeOfCurrentTask	KEYWORD2
 removeCallbacks	KEYWORD2
 acquireNoDeepSleepLock	KEYWORD2
 releaseNoDeepSleepLock	KEYWORD2

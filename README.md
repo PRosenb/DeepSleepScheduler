@@ -94,6 +94,7 @@ The following example sketches are included in the **DeepSleepScheduler** librar
 You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/Main/Software) in menu File->Examples->DeepSleepScheduler.
 - [**Blink**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/Blink/Blink.ino): On other simple LED blink example  
 - [**BlinkRunnable**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/BlinkRunnable/BlinkRunnable.ino): A simple LED blink example using Runnable  
+- [**ScheduleRepeated**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/ScheduleRepeated/ScheduleRepeated.ino): Shows how to execute a repeated task. The library does not support it intrinsic to save memory.
 - [**ScheduleFromInterrupt**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/ScheduleFromInterrupt/ScheduleFromInterrupt.ino): Shows how you can schedule a callback on the main thread from an interrupt  
 - [**ShowSleep**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/ShowSleep/ShowSleep.ino): Shows with the LED, when the CPU is in sleep or awake  
 - [**Supervision**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/Supervision/Supervision.ino): Shows how to activate the task supervision in order to restart the CPU when a task takes too much time  
@@ -131,6 +132,8 @@ You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/
 
     /**
        Schedule the callback uptimeMillis milliseconds after the device was started.
+       Please be aware that uptimeMillis is stopped when no task is pending. In this case,
+       the CPU may only wake up on an external interrupt.
        @param callback: the method to be called on the main thread
        @param uptimeMillis: the time in milliseconds since the device was started
                             to schedule the callback.
@@ -138,6 +141,8 @@ You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/
     void scheduleAt(void (*callback)(), unsigned long uptimeMillis);
     /**
        Schedule the callback uptimeMillis milliseconds after the device was started.
+       Please be aware that uptimeMillis is stopped when no task is pending. In this case,
+       the CPU may only wake up on an external interrupt.
        @param runnable: the Runnable on which the run() method will be called on the main thread
        @param uptimeMillis: the time in milliseconds since the device was started
                             to schedule the callback.
@@ -161,7 +166,7 @@ You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/
        the run queue until it finds it or reaches the end.
        @param callback: callback to check
     */
-    bool isScheduled(void (*callback)());
+    bool isScheduled(void (*callback)()) const;
 
     /**
        Check if this runnable is scheduled at least once already.
@@ -169,7 +174,13 @@ You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/
        the run queue until it finds it or reaches the end.
       @param runnable: Runnable to check
     */
-    bool isScheduled(Runnable *runnable);
+    bool isScheduled(Runnable *runnable) const;
+
+    /**
+       Returns the scheduled time of the task that is currently running.
+       If no task is currently running, -1 is returned.
+    */
+    unsigned long getScheduleTimeOfCurrentTask() const;
 
     /**
        Cancel all schedules that were scheduled for this callback.
@@ -200,7 +211,7 @@ You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/
     /**
        return: true if the CPU is currently allowed to enter deep sleep, false otherwise.
     */
-    bool doesDeepSleep();
+    bool doesDeepSleep() const;
 
     /**
        Configure the supervision of future tasks. Can be deactivated with NO_SUPERVISION.
@@ -214,7 +225,7 @@ You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/
                This value does not consider the time when the CPU is in infinite deep sleep
                while nothing is in the queue.
     */
-    unsigned long getMillis();
+    unsigned long getMillis() const;
 
     /**
        This method needs to be called from your loop() method and does not return.
