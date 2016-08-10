@@ -294,6 +294,12 @@ class Scheduler {
         Runnable * const runnable;
     };
 
+    enum SleepMode {
+      NO_SLEEP,
+      IDLE,
+      PWR_DOWN
+    };
+
     // variables used in the interrupt
     static volatile unsigned long millisInDeepSleep;
     static volatile unsigned long millisBeforeDeepSleep;
@@ -331,7 +337,7 @@ class Scheduler {
 #endif
 
     void insertTask(Task *task);
-    inline bool evaluateAndPrepareSleep();
+    inline SleepMode evaluateAndPrepareSleep();
 };
 
 /**
@@ -582,35 +588,53 @@ void Scheduler::execute() {
     // sleeps. In that case, the WDT interrupt clears the sleep bit and the CPU will not sleep
     // but continue execution immediatelly.
     sleep_enable(); // enables the sleep bit, a safety pin
-    bool sleep;
+    SleepMode sleepMode = IDLE;
     noInterrupts();
     bool queueEmpty = first == NULL;
     interrupts();
     if (!queueEmpty) {
-      sleep = evaluateAndPrepareSleep();
+      sleepMode = evaluateAndPrepareSleep();
     } else {
       // nothing in the queue
-      sleep = true;
       if (doesDeepSleep()
 #ifdef DEEP_SLEEP_DELAY
           && millis() >= lastTaskFinishedMillis + DEEP_SLEEP_DELAY
 #endif
          ) {
         wdt_disable();
-        set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+        sleepMode = PWR_DOWN;
       } else {
-        set_sleep_mode(SLEEP_MODE_IDLE);
+        sleepMode = IDLE;
       }
     }
-    if (sleep) {
+    if (sleepMode != NO_SLEEP) {
 #ifdef AWAKE_INDICATION_PIN
       digitalWrite(AWAKE_INDICATION_PIN, LOW);
 #endif
-      sleep_mode(); // here the device is actually put to sleep
+      byte adcsraSave = 0;
+      if (sleepMode == PWR_DOWN) {
+        noInterrupts();
+        set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+        adcsraSave = ADCSRA;
+        ADCSRA = 0;  // disable ADC
+        // turn off brown-out in software
+#if defined(BODS) && defined(BODSE)
+        sleep_bod_disable();
+#endif
+        interrupts ();             // guarantees next instruction executed
+        sleep_cpu(); // here the device is actually put to sleep
+      } else { // IDLE
+        set_sleep_mode(SLEEP_MODE_IDLE);
+        sleep_cpu(); // here the device is actually put to sleep
+      }
       // THE PROGRAM CONTINUES FROM HERE AFTER WAKING UP
 #ifdef AWAKE_INDICATION_PIN
       digitalWrite(AWAKE_INDICATION_PIN, HIGH);
 #endif
+      if (adcsraSave != 0) {
+        // re-enable ADC
+        ADCSRA = adcsraSave;
+      }
     }
     sleep_disable();
 
@@ -636,8 +660,8 @@ void Scheduler::execute() {
 }
 
 // returns true if sleep SLEEP_MODE_IDLE or SLEEP_MODE_PWR_DOWN is needed
-bool Scheduler::evaluateAndPrepareSleep() {
-  bool sleep = false;
+Scheduler::SleepMode Scheduler::evaluateAndPrepareSleep() {
+  SleepMode sleepMode = NO_SLEEP;
 
   noInterrupts();
   unsigned long wdtSleepTimeMillisLocal = wdtSleepTimeMillis;
@@ -658,18 +682,16 @@ bool Scheduler::evaluateAndPrepareSleep() {
     }
 
     if (maxWaitTimeMillis == 0) {
-      sleep = false;
+      sleepMode = NO_SLEEP;
     } else if (!doesDeepSleep() || maxWaitTimeMillis < SLEEP_TIME_1S + BUFFER_TIME
 #ifdef DEEP_SLEEP_DELAY
                || millis() < lastTaskFinishedMillis + DEEP_SLEEP_DELAY
 #endif
               ) {
       // use SLEEP_MODE_IDLE for values less then SLEEP_TIME_1S
-      sleep = true;
-      set_sleep_mode(SLEEP_MODE_IDLE);
+      sleepMode = IDLE;
     } else {
-      sleep = true;
-      set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+      sleepMode = PWR_DOWN;
       firstRegularlyScheduledUptimeAfterSleep = firstScheduledUptimeMillis;
 
       if (maxWaitTimeMillis >= SLEEP_TIME_8S + BUFFER_TIME) {
@@ -715,7 +737,7 @@ bool Scheduler::evaluateAndPrepareSleep() {
   } else {
     // wdt already running, so we woke up due to an other interrupt then WDT.
     // continue sleepting without enabling wdt again
-    sleep = true;
+    sleepMode = PWR_DOWN;
     WDTCSR |= (1 << WDCE) | (1 << WDIE);
     // A special case is when the other interrupt scheduled a task between now and before the WDT interrupt occurs.
     // In this case, we prevent SLEEP_MODE_PWR_DOWN until it is scheduled.
@@ -723,20 +745,20 @@ bool Scheduler::evaluateAndPrepareSleep() {
     // corrected when the WTD occurs.
 
     if (firstScheduledUptimeMillis < firstRegularlyScheduledUptimeAfterSleep) {
-      set_sleep_mode(SLEEP_MODE_IDLE);
+      sleepMode = IDLE;
     } else {
 #ifdef DEEP_SLEEP_DELAY
       // The CPU was woken up by an interrupt other than WDT.
       // The interrupt may have scheduled a task to run immediatelly. In that case we delay deep sleep.
       if (millis() < lastTaskFinishedMillis + DEEP_SLEEP_DELAY) {
-        set_sleep_mode(SLEEP_MODE_IDLE);
+        sleepMode = IDLE;
       } else {
-        set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+        sleepMode = PWR_DOWN;
       }
 #endif
     }
   }
-  return sleep;
+  return sleepMode;
 }
 
 void Scheduler::isrWdt() {
