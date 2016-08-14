@@ -7,6 +7,7 @@
 // you configure
 // #define SLEEP_TIME_15MS_CORRECTION 3
 // The sleep time will then be calculated as 15ms + 3ms = 18ms.
+// See example WdtTiemsMeasurer.
 
 // Please be aware that the CPU is not set to SLEEP_MODE_PWR_DOWN
 // when the total sleep time is less than about a second.
