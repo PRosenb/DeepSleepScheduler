@@ -337,7 +337,9 @@ class Scheduler {
 #endif
 
     void insertTask(Task *task);
-    inline SleepMode evaluateAndPrepareSleep();
+    inline void sleepIfRequired();
+    inline SleepMode evaluateSleepModeAndEnableWdtIfRequired();
+    inline unsigned long enableWdt(unsigned long maxWaitTimeMillis);
 };
 
 /**
@@ -583,60 +585,7 @@ void Scheduler::execute() {
     }
     wdt_reset();
 
-    // Enable sleep bit with sleep_enable() before the sleep time evaluation because it can happen
-    // that the WDT interrupt occurs during sleep time evaluation but before the CPU
-    // sleeps. In that case, the WDT interrupt clears the sleep bit and the CPU will not sleep
-    // but continue execution immediatelly.
-    sleep_enable(); // enables the sleep bit, a safety pin
-    SleepMode sleepMode = IDLE;
-    noInterrupts();
-    bool queueEmpty = first == NULL;
-    interrupts();
-    if (!queueEmpty) {
-      sleepMode = evaluateAndPrepareSleep();
-    } else {
-      // nothing in the queue
-      if (doesDeepSleep()
-#ifdef DEEP_SLEEP_DELAY
-          && millis() >= lastTaskFinishedMillis + DEEP_SLEEP_DELAY
-#endif
-         ) {
-        wdt_disable();
-        sleepMode = PWR_DOWN;
-      } else {
-        sleepMode = IDLE;
-      }
-    }
-    if (sleepMode != NO_SLEEP) {
-#ifdef AWAKE_INDICATION_PIN
-      digitalWrite(AWAKE_INDICATION_PIN, LOW);
-#endif
-      byte adcsraSave = 0;
-      if (sleepMode == PWR_DOWN) {
-        noInterrupts();
-        set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-        adcsraSave = ADCSRA;
-        ADCSRA = 0;  // disable ADC
-        // turn off brown-out in software
-#if defined(BODS) && defined(BODSE)
-        sleep_bod_disable();
-#endif
-        interrupts ();             // guarantees next instruction executed
-        sleep_cpu(); // here the device is actually put to sleep
-      } else { // IDLE
-        set_sleep_mode(SLEEP_MODE_IDLE);
-        sleep_cpu(); // here the device is actually put to sleep
-      }
-      // THE PROGRAM CONTINUES FROM HERE AFTER WAKING UP
-#ifdef AWAKE_INDICATION_PIN
-      digitalWrite(AWAKE_INDICATION_PIN, HIGH);
-#endif
-      if (adcsraSave != 0) {
-        // re-enable ADC
-        ADCSRA = adcsraSave;
-      }
-    }
-    sleep_disable();
+    sleepIfRequired();
 
     noInterrupts();
     unsigned long wdtSleepTimeMillisLocal = wdtSleepTimeMillis;
@@ -659,10 +608,64 @@ void Scheduler::execute() {
   // never executed so no need to deactivate the WDT
 }
 
-// returns true if sleep SLEEP_MODE_IDLE or SLEEP_MODE_PWR_DOWN is needed
-Scheduler::SleepMode Scheduler::evaluateAndPrepareSleep() {
-  SleepMode sleepMode = NO_SLEEP;
+inline void Scheduler::sleepIfRequired() {
+  // Enable sleep bit with sleep_enable() before the sleep time evaluation because it can happen
+  // that the WDT interrupt occurs during sleep time evaluation but before the CPU
+  // sleeps. In that case, the WDT interrupt clears the sleep bit and the CPU will not sleep
+  // but continue execution immediatelly.
+  sleep_enable(); // enables the sleep bit, a safety pin
+  noInterrupts();
+  bool queueEmpty = first == NULL;
+  interrupts();
+  SleepMode sleepMode = IDLE;
+  if (!queueEmpty) {
+    sleepMode = evaluateSleepModeAndEnableWdtIfRequired();
+  } else {
+    // nothing in the queue
+    if (doesDeepSleep()
+#ifdef DEEP_SLEEP_DELAY
+        && millis() >= lastTaskFinishedMillis + DEEP_SLEEP_DELAY
+#endif
+       ) {
+      wdt_disable();
+      sleepMode = PWR_DOWN;
+    } else {
+      sleepMode = IDLE;
+    }
+  }
+  if (sleepMode != NO_SLEEP) {
+#ifdef AWAKE_INDICATION_PIN
+    digitalWrite(AWAKE_INDICATION_PIN, LOW);
+#endif
+    byte adcsraSave = 0;
+    if (sleepMode == PWR_DOWN) {
+      noInterrupts();
+      set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+      adcsraSave = ADCSRA;
+      ADCSRA = 0;  // disable ADC
+      // turn off brown-out in software
+#if defined(BODS) && defined(BODSE)
+      sleep_bod_disable();
+#endif
+      interrupts ();             // guarantees next instruction executed
+      sleep_cpu(); // here the device is actually put to sleep
+    } else { // IDLE
+      set_sleep_mode(SLEEP_MODE_IDLE);
+      sleep_cpu(); // here the device is actually put to sleep
+    }
+    // THE PROGRAM CONTINUES FROM HERE AFTER WAKING UP
+#ifdef AWAKE_INDICATION_PIN
+    digitalWrite(AWAKE_INDICATION_PIN, HIGH);
+#endif
+    if (adcsraSave != 0) {
+      // re-enable ADC
+      ADCSRA = adcsraSave;
+    }
+  }
+  sleep_disable();
+}
 
+Scheduler::SleepMode Scheduler::evaluateSleepModeAndEnableWdtIfRequired() {
   noInterrupts();
   unsigned long wdtSleepTimeMillisLocal = wdtSleepTimeMillis;
   unsigned long currentSchedulerMillis = getMillis();
@@ -673,6 +676,7 @@ Scheduler::SleepMode Scheduler::evaluateAndPrepareSleep() {
   }
   interrupts();
 
+  SleepMode sleepMode = NO_SLEEP;
   if (wdtSleepTimeMillisLocal == 0) {
     // not woken up during WDT sleep
 
@@ -694,37 +698,7 @@ Scheduler::SleepMode Scheduler::evaluateAndPrepareSleep() {
       sleepMode = PWR_DOWN;
       firstRegularlyScheduledUptimeAfterSleep = firstScheduledUptimeMillis;
 
-      if (maxWaitTimeMillis >= SLEEP_TIME_8S + BUFFER_TIME) {
-        wdtSleepTimeMillisLocal = SLEEP_TIME_8S;
-        wdt_enable(WDTO_8S);
-      } else if (maxWaitTimeMillis >= SLEEP_TIME_4S + BUFFER_TIME) {
-        wdtSleepTimeMillisLocal = SLEEP_TIME_4S;
-        wdt_enable(WDTO_4S);
-      } else if (maxWaitTimeMillis >= SLEEP_TIME_2S + BUFFER_TIME) {
-        wdtSleepTimeMillisLocal = SLEEP_TIME_2S;
-        wdt_enable(WDTO_2S);
-      } else if (maxWaitTimeMillis >= SLEEP_TIME_1S + BUFFER_TIME) {
-        wdtSleepTimeMillisLocal = SLEEP_TIME_1S;
-        wdt_enable(WDTO_1S);
-      } else if (maxWaitTimeMillis >= SLEEP_TIME_500MS + BUFFER_TIME) {
-        wdtSleepTimeMillisLocal = SLEEP_TIME_500MS;
-        wdt_enable(WDTO_500MS);
-      } else if (maxWaitTimeMillis >= SLEEP_TIME_250MS + BUFFER_TIME) {
-        wdtSleepTimeMillisLocal = SLEEP_TIME_250MS;
-        wdt_enable(WDTO_250MS);
-      } else if (maxWaitTimeMillis >= SLEEP_TIME_120MS + BUFFER_TIME) {
-        wdtSleepTimeMillisLocal = SLEEP_TIME_120MS;
-        wdt_enable(WDTO_120MS);
-      } else if (maxWaitTimeMillis >= SLEEP_TIME_60MS + BUFFER_TIME) {
-        wdtSleepTimeMillisLocal = SLEEP_TIME_60MS;
-        wdt_enable(WDTO_60MS);
-      } else if (maxWaitTimeMillis >= SLEEP_TIME_30MS + BUFFER_TIME) {
-        wdtSleepTimeMillisLocal = SLEEP_TIME_30MS;
-        wdt_enable(WDTO_30MS);
-      } else { // maxWaitTimeMs >= 17
-        wdtSleepTimeMillisLocal = SLEEP_TIME_15MS;
-        wdt_enable(WDTO_15MS);
-      }
+      wdtSleepTimeMillisLocal = enableWdt(maxWaitTimeMillis);
 
       noInterrupts();
       wdtSleepTimeMillis = wdtSleepTimeMillisLocal;
@@ -759,6 +733,42 @@ Scheduler::SleepMode Scheduler::evaluateAndPrepareSleep() {
     }
   }
   return sleepMode;
+}
+
+inline unsigned long Scheduler::enableWdt(const unsigned long maxWaitTimeMillis) {
+  unsigned long wdtSleepTimeMillis;
+  if (maxWaitTimeMillis >= SLEEP_TIME_8S + BUFFER_TIME) {
+    wdtSleepTimeMillis = SLEEP_TIME_8S;
+    wdt_enable(WDTO_8S);
+  } else if (maxWaitTimeMillis >= SLEEP_TIME_4S + BUFFER_TIME) {
+    wdtSleepTimeMillis = SLEEP_TIME_4S;
+    wdt_enable(WDTO_4S);
+  } else if (maxWaitTimeMillis >= SLEEP_TIME_2S + BUFFER_TIME) {
+    wdtSleepTimeMillis = SLEEP_TIME_2S;
+    wdt_enable(WDTO_2S);
+  } else if (maxWaitTimeMillis >= SLEEP_TIME_1S + BUFFER_TIME) {
+    wdtSleepTimeMillis = SLEEP_TIME_1S;
+    wdt_enable(WDTO_1S);
+  } else if (maxWaitTimeMillis >= SLEEP_TIME_500MS + BUFFER_TIME) {
+    wdtSleepTimeMillis = SLEEP_TIME_500MS;
+    wdt_enable(WDTO_500MS);
+  } else if (maxWaitTimeMillis >= SLEEP_TIME_250MS + BUFFER_TIME) {
+    wdtSleepTimeMillis = SLEEP_TIME_250MS;
+    wdt_enable(WDTO_250MS);
+  } else if (maxWaitTimeMillis >= SLEEP_TIME_120MS + BUFFER_TIME) {
+    wdtSleepTimeMillis = SLEEP_TIME_120MS;
+    wdt_enable(WDTO_120MS);
+  } else if (maxWaitTimeMillis >= SLEEP_TIME_60MS + BUFFER_TIME) {
+    wdtSleepTimeMillis = SLEEP_TIME_60MS;
+    wdt_enable(WDTO_60MS);
+  } else if (maxWaitTimeMillis >= SLEEP_TIME_30MS + BUFFER_TIME) {
+    wdtSleepTimeMillis = SLEEP_TIME_30MS;
+    wdt_enable(WDTO_30MS);
+  } else { // maxWaitTimeMs >= 17
+    wdtSleepTimeMillis = SLEEP_TIME_15MS;
+    wdt_enable(WDTO_15MS);
+  }
+  return wdtSleepTimeMillis;
 }
 
 void Scheduler::isrWdt() {
