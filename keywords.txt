@@ -27,6 +27,7 @@ releaseNoDeepSleepLock	KEYWORD2
 doesDeepSleep	KEYWORD2
 setTaskTimeout	KEYWORD2
 getMillis	KEYWORD2
+setSupervisionCallback	KEYWORD2
 execute	KEYWORD2
 
 #######################################

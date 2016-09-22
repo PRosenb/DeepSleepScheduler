@@ -98,6 +98,7 @@ You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/
 - [**ScheduleFromInterrupt**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/ScheduleFromInterrupt/ScheduleFromInterrupt.ino): Shows how you can schedule a callback on the main thread from an interrupt  
 - [**ShowSleep**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/ShowSleep/ShowSleep.ino): Shows with the LED, when the CPU is in sleep or awake  
 - [**Supervision**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/Supervision/Supervision.ino): Shows how to activate the task supervision in order to restart the CPU when a task takes too much time  
+- [**SupervisionWithCallback**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/SupervisionWithCallback/SupervisionWithCallback.ino): Shows how to activate the task supervision and get a callback when a task takes too much time  
 - [**SerialWithDeepSleepDelay**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/SerialWithDeepSleepDelay/SerialWithDeepSleepDelay.ino): Shows how to use `DEEP_SLEEP_DELAY` to allow serial write to finish before entering deep sleep
 - [**AdjustSleepTimeCorrections**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/AdjustSleepTimeCorrections/AdjustSleepTimeCorrections.ino): Shows how to adjust the sleep time corrections to your specific CPU
 
@@ -226,6 +227,15 @@ You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/
                while nothing is in the queue.
     */
     unsigned long getMillis() const;
+    
+    /**
+       Sets the runnable to be called when the task supervision detects a task that runs too long.
+       The run() method will be called from the watchdog interrupt what means, that
+       e.g. the method delay() does not work. When run() returns, the CPU will be restarted after 15ms.
+       See descrioptiona of SUPERVISION_CALLBACK and SUPERVISION_CALLBACK_TIMEOUT.
+       @param runnable: instance of Runnable where the run() method is called
+    */
+    void setSupervisionCallback(const Runnable *runnable);
 
     /**
        This method needs to be called from your loop() method and does not return.
@@ -255,6 +265,10 @@ enum TaskTimeout {
 
 All following options are to be set before the include where **no** `LIBCALL_DEEP_SLEEP_SCHEDULER` is defined:
 - `#define DEEP_SLEEP_DELAY`: Prevent the CPU from entering SLEEP_MODE_PWR_DOWN for the specified amount of milliseconds after finishing the previous task.
+- `#define SUPERVISION_CALLBACK`: Allows to specify a callback `Runnable` to be called when a task runs too long. When
+    the callback returns, the CPU is restarted after 15 ms by the watchdog. The callback method is called directly
+    from the watchdog interrupt. This means that e.g. `delay()` does not work.
+- `#define SUPERVISION_CALLBACK_TIMEOUT`: Specify the timeout of the callback until the watchdog resets the CPU. Defaults to `WDTO_1S`.
 - `#define AWAKE_INDICATION_PIN`: Show on a LED if the CPU is active or in sleep mode.  
 HIGH = active, LOW = sleeping
 - `#define SLEEP_TIME_XXX_CORRECTION`: Adjust the sleep time correction for the time when the CPU is in `SLEEP_MODE_PWR_DOWN` and waking up. See [Implementation Notes](#implementation-notes) and example [AdjustSleepTimeCorrections](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/AdjustSleepTimeCorrections/AdjustSleepTimeCorrections.ino).
