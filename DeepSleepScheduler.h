@@ -318,7 +318,7 @@ class Scheduler {
     enum SleepMode {
       NO_SLEEP,
       IDLE,
-      PWR_DOWN
+      SLEEP
     };
 
     // variables used in the interrupt
@@ -663,7 +663,7 @@ inline void Scheduler::sleepIfRequired() {
 #endif
        ) {
       wdt_disable();
-      sleepMode = PWR_DOWN;
+      sleepMode = SLEEP;
     } else {
       sleepMode = IDLE;
     }
@@ -673,7 +673,7 @@ inline void Scheduler::sleepIfRequired() {
     digitalWrite(AWAKE_INDICATION_PIN, LOW);
 #endif
     byte adcsraSave = 0;
-    if (sleepMode == PWR_DOWN) {
+    if (sleepMode == SLEEP) {
       noInterrupts();
       set_sleep_mode(SLEEP_MODE_PWR_DOWN);
       adcsraSave = ADCSRA;
@@ -730,7 +730,7 @@ Scheduler::SleepMode Scheduler::evaluateSleepModeAndEnableWdtIfRequired() {
       // use SLEEP_MODE_IDLE for values less then SLEEP_TIME_1S
       sleepMode = IDLE;
     } else {
-      sleepMode = PWR_DOWN;
+      sleepMode = SLEEP;
       firstRegularlyScheduledUptimeAfterSleep = firstScheduledUptimeMillis;
 
       wdtSleepTimeMillisLocal = enableWdt(maxWaitTimeMillis);
@@ -744,7 +744,7 @@ Scheduler::SleepMode Scheduler::evaluateSleepModeAndEnableWdtIfRequired() {
   } else {
     // wdt already running, so we woke up due to an other interrupt then WDT.
     // continue sleepting without enabling wdt again
-    sleepMode = PWR_DOWN;
+    sleepMode = SLEEP;
     enableWdtInterrupt();
     // A special case is when the other interrupt scheduled a task between now and before the WDT interrupt occurs.
     // In this case, we prevent SLEEP_MODE_PWR_DOWN until it is scheduled.
@@ -760,7 +760,7 @@ Scheduler::SleepMode Scheduler::evaluateSleepModeAndEnableWdtIfRequired() {
       if (millis() < lastTaskFinishedMillis + DEEP_SLEEP_DELAY) {
         sleepMode = IDLE;
       } else {
-        sleepMode = PWR_DOWN;
+        sleepMode = SLEEP;
       }
 #endif
     }
