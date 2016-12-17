@@ -100,6 +100,7 @@ You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/
 - [**Supervision**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/Supervision/Supervision.ino): Shows how to activate the task supervision in order to restart the CPU when a task takes too much time  
 - [**SupervisionWithCallback**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/SupervisionWithCallback/SupervisionWithCallback.ino): Shows how to activate the task supervision and get a callback when a task takes too much time  
 - [**SerialWithDeepSleepDelay**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/SerialWithDeepSleepDelay/SerialWithDeepSleepDelay.ino): Shows how to use `DEEP_SLEEP_DELAY` to allow serial write to finish before entering deep sleep
+- [**PwmSleep**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/PwmSleep/PwmSleep.ino): Shows how to use analogWrite() and still use low power mode.  
 - [**AdjustSleepTimeCorrections**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/AdjustSleepTimeCorrections/AdjustSleepTimeCorrections.ino): Shows how to adjust the sleep time corrections to your specific CPU
 
 ## Reference ##
@@ -264,6 +265,7 @@ enum TaskTimeout {
 - `#define LIBCALL_DEEP_SLEEP_SCHEDULER`: The header file contains definition and implementation. For that reason, it can be included once only in a project. To use it in multiple files, define `LIBCALL_DEEP_SLEEP_SCHEDULER` before all include statements except one.
 
 All following options are to be set before the include where **no** `LIBCALL_DEEP_SLEEP_SCHEDULER` is defined:
+- `#define SLEEP_MODE`: Specifies the sleep mode entered when doing deep sleep. Default is `PWR_DOWN`.
 - `#define DEEP_SLEEP_DELAY`: Prevent the CPU from entering SLEEP_MODE_PWR_DOWN for the specified amount of milliseconds after finishing the previous task.
 - `#define SUPERVISION_CALLBACK`: Allows to specify a callback `Runnable` to be called when a task runs too long. When
     the callback returns, the CPU is restarted after 15 ms by the watchdog. The callback method is called directly

@@ -21,6 +21,7 @@
   - #define LIBCALL_DEEP_SLEEP_SCHEDULER: This h file can only be included once within a project as it also contains the implementation.
     To use it in multiple files, define LIBCALL_DEEP_SLEEP_SCHEDULER before all include statements except one.
   All following options are to be set before the include where no LIBCALL_DEEP_SLEEP_SCHEDULER is defined.
+  - #define SLEEP_MODE: Specifies the sleep mode entered when doing deep sleep. Default is PWR_DOWN.
   - #define DEEP_SLEEP_DELAY: Prevent the CPU from entering SLEEP_MODE_PWR_DOWN for the specified amount of milli seconds after finishing the previous task.
   - #define SUPERVISION_CALLBACK: Allows to specify a callback Runnable to be called when a task runs too long. When
     the callback returns, the CPU is restarted after 15 ms by the watchdog. The callback method is called directly
@@ -44,6 +45,10 @@
 #include <util/atomic.h>
 
 // values changeable by the user
+#ifndef SLEEP_MODE
+#define SLEEP_MODE PWR_DOWN
+#endif
+
 #ifndef SUPERVISION_CALLBACK_TIMEOUT
 #define SUPERVISION_CALLBACK_TIMEOUT WDTO_1S
 #endif
@@ -675,7 +680,7 @@ inline void Scheduler::sleepIfRequired() {
     byte adcsraSave = 0;
     if (sleepMode == SLEEP) {
       noInterrupts();
-      set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+      set_sleep_mode(SLEEP_MODE);
       adcsraSave = ADCSRA;
       ADCSRA = 0;  // disable ADC
       // turn off brown-out in software
