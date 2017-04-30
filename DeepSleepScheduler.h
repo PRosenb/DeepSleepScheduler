@@ -286,6 +286,7 @@ class Scheduler {
         Task(const unsigned long scheduledUptimeMillis)
           : scheduledUptimeMillis(scheduledUptimeMillis), next(NULL) {
         }
+        virtual ~Task() {}
         virtual void execute() = 0;
         // dynamic_cast is not supported by default as it compiles with -fno-rtti
         // Therefore, we use this method to detect which Task type it is.
