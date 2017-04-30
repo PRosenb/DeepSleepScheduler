@@ -198,7 +198,7 @@ class Scheduler {
 
     /**
        Returns the scheduled time of the task that is currently running.
-       If no task is currently running, -1 is returned.
+       If no task is currently running, 0 is returned.
     */
     unsigned long getScheduleTimeOfCurrentTask() const;
 
@@ -487,10 +487,9 @@ unsigned long Scheduler::getScheduleTimeOfCurrentTask() const {
   ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
     if (current != NULL) {
       return current->scheduledUptimeMillis;
-    } else {
-      return - 1;
     }
   }
+  return 0;
 }
 
 void Scheduler::removeCallbacks(void (*callback)()) {
