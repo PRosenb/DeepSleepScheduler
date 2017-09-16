@@ -7,7 +7,7 @@ class BlinkRunnable: public Runnable {
   private:
     bool ledOn = true;
     const byte ledPin;
-    const int delay;
+    const unsigned long delay;
   public:
     BlinkRunnable(byte ledPin, int delay) : ledPin(ledPin), delay(delay) {
       pinMode(ledPin, OUTPUT);
