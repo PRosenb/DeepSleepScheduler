@@ -42,7 +42,6 @@
 #include <Arduino.h>
 #include <avr/sleep.h>
 #include <avr/wdt.h>
-#include <util/atomic.h>
 
 // values changeable by the user
 #ifndef SLEEP_MODE
@@ -247,9 +246,9 @@ class Scheduler {
     */
     inline unsigned long getMillis() const {
       unsigned long value;
-      ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-        value = millis() + millisInDeepSleep;
-      }
+      noInterrupts();
+      value = millis() + millisInDeepSleep;
+      interrupts();
       return value;
     }
 
@@ -440,107 +439,107 @@ void Scheduler::scheduleAt(Runnable *runnable, unsigned long uptimeMillis) {
 
 void Scheduler::scheduleAtFrontOfQueue(void (*callback)()) {
   Task *newTask = new CallbackTask(callback, getMillis());
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-    newTask->next = first;
-    first = newTask;
-  }
+  noInterrupts();
+  newTask->next = first;
+  first = newTask;
+  interrupts();
 }
 
 void Scheduler::scheduleAtFrontOfQueue(Runnable *runnable) {
   Task *newTask = new RunnableTask(runnable, getMillis());
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-    newTask->next = first;
-    first = newTask;
-  }
+  noInterrupts();
+  newTask->next = first;
+  first = newTask;
+  interrupts();
 }
 
 bool Scheduler::isScheduled(void (*callback)()) const {
   bool scheduled = false;
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-    Task *currentTask = first;
-    while (currentTask != NULL) {
-      if (currentTask->isCallbackTask() && ((CallbackTask*)currentTask)->callback == callback) {
-        scheduled = true;
-        break;
-      }
-      currentTask = currentTask->next;
+  noInterrupts();
+  Task *currentTask = first;
+  while (currentTask != NULL) {
+    if (currentTask->isCallbackTask() && ((CallbackTask*)currentTask)->callback == callback) {
+      scheduled = true;
+      break;
     }
+    currentTask = currentTask->next;
   }
+  interrupts();
   return scheduled;
 }
 
 bool Scheduler::isScheduled(Runnable *runnable) const {
   bool scheduled = false;
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-    Task *currentTask = first;
-    while (currentTask != NULL) {
-      if (!currentTask->isCallbackTask() && ((RunnableTask*)currentTask)->runnable == runnable) {
-        scheduled = true;
-        break;
-      }
-      currentTask = currentTask->next;
+  noInterrupts();
+  Task *currentTask = first;
+  while (currentTask != NULL) {
+    if (!currentTask->isCallbackTask() && ((RunnableTask*)currentTask)->runnable == runnable) {
+      scheduled = true;
+      break;
     }
+    currentTask = currentTask->next;
   }
+  interrupts();
   return scheduled;
 }
 
 unsigned long Scheduler::getScheduleTimeOfCurrentTask() const {
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-    if (current != NULL) {
-      return current->scheduledUptimeMillis;
-    }
+  noInterrupts();
+  if (current != NULL) {
+    return current->scheduledUptimeMillis;
   }
+  interrupts();
   return 0;
 }
 
 void Scheduler::removeCallbacks(void (*callback)()) {
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-    if (first != NULL) {
-      Task *previousTask = NULL;
-      Task *currentTask = first;
-      while (currentTask != NULL) {
-        if (currentTask->isCallbackTask() && ((CallbackTask*)currentTask)->callback == callback) {
-          Task *taskToDelete = currentTask;
-          if (previousTask == NULL) {
-            // remove the first task
-            first = taskToDelete->next;
-          } else {
-            previousTask->next = taskToDelete->next;
-          }
-          currentTask = taskToDelete->next;
-          delete taskToDelete;
+  noInterrupts();
+  if (first != NULL) {
+    Task *previousTask = NULL;
+    Task *currentTask = first;
+    while (currentTask != NULL) {
+      if (currentTask->isCallbackTask() && ((CallbackTask*)currentTask)->callback == callback) {
+        Task *taskToDelete = currentTask;
+        if (previousTask == NULL) {
+          // remove the first task
+          first = taskToDelete->next;
         } else {
-          previousTask = currentTask;
-          currentTask = currentTask->next;
+          previousTask->next = taskToDelete->next;
         }
+        currentTask = taskToDelete->next;
+        delete taskToDelete;
+      } else {
+        previousTask = currentTask;
+        currentTask = currentTask->next;
       }
     }
   }
+  interrupts();
 }
 
 void Scheduler::removeCallbacks(Runnable *runnable) {
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-    if (first != NULL) {
-      Task *previousTask = NULL;
-      Task *currentTask = first;
-      while (currentTask != NULL) {
-        if (!currentTask->isCallbackTask() && ((RunnableTask*)currentTask)->runnable == runnable) {
-          Task *taskToDelete = currentTask;
-          if (previousTask == NULL) {
-            // remove the first task
-            first = taskToDelete->next;
-          } else {
-            previousTask->next = taskToDelete->next;
-          }
-          currentTask = taskToDelete->next;
-          delete taskToDelete;
+  noInterrupts();
+  if (first != NULL) {
+    Task *previousTask = NULL;
+    Task *currentTask = first;
+    while (currentTask != NULL) {
+      if (!currentTask->isCallbackTask() && ((RunnableTask*)currentTask)->runnable == runnable) {
+        Task *taskToDelete = currentTask;
+        if (previousTask == NULL) {
+          // remove the first task
+          first = taskToDelete->next;
         } else {
-          previousTask = currentTask;
-          currentTask = currentTask->next;
+          previousTask->next = taskToDelete->next;
         }
+        currentTask = taskToDelete->next;
+        delete taskToDelete;
+      } else {
+        previousTask = currentTask;
+        currentTask = currentTask->next;
       }
     }
   }
+  interrupts();
 }
 
 void Scheduler::acquireNoDeepSleepLock() {
@@ -558,33 +557,33 @@ bool Scheduler::doesDeepSleep() const {
 }
 
 void Scheduler::setTaskTimeout(TaskTimeout taskTimeout) {
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-    this->taskTimeout = taskTimeout;
-  }
+  noInterrupts();
+  this->taskTimeout = taskTimeout;
+  interrupts();
 }
 
 // Inserts a new task in the ordered lists of tasks.
 void Scheduler::insertTask(Task *newTask) {
-  ATOMIC_BLOCK(ATOMIC_RESTORESTATE) {
-    if (first == NULL) {
+  noInterrupts();
+  if (first == NULL) {
+    first = newTask;
+  } else {
+    if (first->scheduledUptimeMillis > newTask->scheduledUptimeMillis) {
+      // insert before first
+      newTask->next = first;
       first = newTask;
     } else {
-      if (first->scheduledUptimeMillis > newTask->scheduledUptimeMillis) {
-        // insert before first
-        newTask->next = first;
-        first = newTask;
-      } else {
-        Task *currentTask = first;
-        while (currentTask->next != NULL
-               && currentTask->next->scheduledUptimeMillis <= newTask->scheduledUptimeMillis) {
-          currentTask = currentTask->next;
-        }
-        // insert after currentTask
-        newTask->next = currentTask->next;
-        currentTask->next = newTask;
+      Task *currentTask = first;
+      while (currentTask->next != NULL
+             && currentTask->next->scheduledUptimeMillis <= newTask->scheduledUptimeMillis) {
+        currentTask = currentTask->next;
       }
+      // insert after currentTask
+      newTask->next = currentTask->next;
+      currentTask->next = newTask;
     }
   }
+  interrupts();
 }
 
 void Scheduler::execute() {
