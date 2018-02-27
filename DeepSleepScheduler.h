@@ -367,6 +367,9 @@ class Scheduler {
 #endif
 
     void insertTask(Task *task);
+    void taskWdtEnable(const uint8_t value);
+    void taskWdtReset();
+    void taskWdtDisable();
     inline void sleepIfRequired();
     inline SleepMode evaluateSleepModeAndEnableWdtIfRequired();
     inline unsigned long wdtEnableForSleep(unsigned long maxWaitTimeMillis);
@@ -589,7 +592,7 @@ void Scheduler::insertTask(Task *newTask) {
 void Scheduler::execute() {
   noInterrupts();
   if (taskTimeout != NO_SUPERVISION) {
-    wdt_enable(taskTimeout);
+    taskWdtEnable(taskTimeout);
 #ifdef SUPERVISION_CALLBACK
     enableWdtInterrupt();
 #endif
@@ -605,7 +608,7 @@ void Scheduler::execute() {
       interrupts();
 
       if (current != NULL) {
-        wdt_reset();
+        taskWdtReset();
         current->execute();
 #ifdef DEEP_SLEEP_DELAY
         // use millis() instead of getMillis() because getMillis() may be manipulated by our WTD interrupt.
@@ -619,7 +622,7 @@ void Scheduler::execute() {
         break;
       }
     }
-    wdt_reset();
+    taskWdtReset();
 
     sleepIfRequired();
 
@@ -633,18 +636,30 @@ void Scheduler::execute() {
       interrupts();
       if (taskTimeoutLocal != NO_SUPERVISION) {
         // change back to taskTimeout
-        wdt_reset();
-        wdt_enable(taskTimeoutLocal);
+        taskWdtReset();
+        taskWdtEnable(taskTimeoutLocal);
 #ifdef SUPERVISION_CALLBACK
         enableWdtInterrupt();
 #endif
       } else {
         // tasks are not suppervised, deactivate WDT
-        wdt_disable();
+        taskWdtDisable();
       }
     } // else the wd is still running
   }
   // never executed so no need to deactivate the WDT
+}
+
+inline void Scheduler::taskWdtEnable(const uint8_t value) {
+  wdt_enable(value);
+}
+
+inline void Scheduler::taskWdtDisable() {
+  wdt_disable();
+}
+
+inline void Scheduler::taskWdtReset() {
+  wdt_reset();
 }
 
 inline void Scheduler::sleepIfRequired() {
