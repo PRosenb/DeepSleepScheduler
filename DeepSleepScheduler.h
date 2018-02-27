@@ -369,7 +369,7 @@ class Scheduler {
     void insertTask(Task *task);
     inline void sleepIfRequired();
     inline SleepMode evaluateSleepModeAndEnableWdtIfRequired();
-    inline unsigned long enableWdt(unsigned long maxWaitTimeMillis);
+    inline unsigned long wdtEnableForSleep(unsigned long maxWaitTimeMillis);
     inline void enableWdtInterrupt();
 };
 
@@ -737,7 +737,7 @@ Scheduler::SleepMode Scheduler::evaluateSleepModeAndEnableWdtIfRequired() {
       sleepMode = SLEEP;
       firstRegularlyScheduledUptimeAfterSleep = firstScheduledUptimeMillis;
 
-      wdtSleepTimeMillisLocal = enableWdt(maxWaitTimeMillis);
+      wdtSleepTimeMillisLocal = wdtEnableForSleep(maxWaitTimeMillis);
 
       noInterrupts();
       wdtSleepTimeMillis = wdtSleepTimeMillisLocal;
@@ -772,7 +772,7 @@ Scheduler::SleepMode Scheduler::evaluateSleepModeAndEnableWdtIfRequired() {
   return sleepMode;
 }
 
-inline unsigned long Scheduler::enableWdt(const unsigned long maxWaitTimeMillis) {
+inline unsigned long Scheduler::wdtEnableForSleep(const unsigned long maxWaitTimeMillis) {
   unsigned long wdtSleepTimeMillis;
   if (maxWaitTimeMillis >= SLEEP_TIME_8S + BUFFER_TIME) {
     wdtSleepTimeMillis = SLEEP_TIME_8S;
