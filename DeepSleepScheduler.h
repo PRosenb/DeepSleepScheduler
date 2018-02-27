@@ -373,7 +373,7 @@ class Scheduler {
     inline void sleepIfRequired();
     inline SleepMode evaluateSleepModeAndEnableWdtIfRequired();
     inline unsigned long wdtEnableForSleep(unsigned long maxWaitTimeMillis);
-    inline void enableWdtInterrupt();
+    inline void wdtEnableInterrupt();
 };
 
 /**
@@ -594,7 +594,7 @@ void Scheduler::execute() {
   if (taskTimeout != NO_SUPERVISION) {
     taskWdtEnable(taskTimeout);
 #ifdef SUPERVISION_CALLBACK
-    enableWdtInterrupt();
+    wdtEnableInterrupt();
 #endif
   }
   interrupts();
@@ -639,7 +639,7 @@ void Scheduler::execute() {
         taskWdtReset();
         taskWdtEnable(taskTimeoutLocal);
 #ifdef SUPERVISION_CALLBACK
-        enableWdtInterrupt();
+        wdtEnableInterrupt();
 #endif
       } else {
         // tasks are not suppervised, deactivate WDT
@@ -756,7 +756,7 @@ Scheduler::SleepMode Scheduler::evaluateSleepModeAndEnableWdtIfRequired() {
 
       noInterrupts();
       wdtSleepTimeMillis = wdtSleepTimeMillisLocal;
-      enableWdtInterrupt();
+      wdtEnableInterrupt();
       millisBeforeDeepSleep = millis();
       interrupts();
     }
@@ -764,7 +764,7 @@ Scheduler::SleepMode Scheduler::evaluateSleepModeAndEnableWdtIfRequired() {
     // wdt already running, so we woke up due to an other interrupt then WDT.
     // continue sleepting without enabling wdt again
     sleepMode = SLEEP;
-    enableWdtInterrupt();
+    wdtEnableInterrupt();
     // A special case is when the other interrupt scheduled a task between now and before the WDT interrupt occurs.
     // In this case, we prevent SLEEP_MODE_PWR_DOWN until it is scheduled.
     // If the WDT interrupt occurs before that, it is executed earlier as expected because getMillis() will be
@@ -847,7 +847,7 @@ void Scheduler::isrWdt() {
 /**
   first timeout will be the interrupt, second system reset
 */
-inline void Scheduler::enableWdtInterrupt() {
+inline void Scheduler::wdtEnableInterrupt() {
   // http://forum.arduino.cc/index.php?topic=108870.0
 #if defined( __AVR_ATtiny25__ ) || defined( __AVR_ATtiny45__ ) || defined( __AVR_ATtiny85__ ) || defined( __AVR_ATtiny87__ ) || defined( __AVR_ATtiny167__ )
   WDTCR |= (1 << WDCE) | (1 << WDIE);
