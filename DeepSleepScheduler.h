@@ -261,6 +261,13 @@ class Scheduler {
         Runnable * const runnable;
     };
 
+    /**
+      controls if deep sleep is done, 0 does deep sleep
+    */
+    byte noDeepSleepLocksCount;
+
+    void insertTask(Task *task);
+
   protected:
     enum SleepMode {
       NO_SLEEP,
@@ -296,10 +303,6 @@ class Scheduler {
        it to check if the new time is before the WDT would wake up anyway.
     */
     unsigned long firstRegularlyScheduledUptimeAfterSleep;
-    /**
-       controls if deep sleep is done, 0 does deep sleep
-    */
-    byte noDeepSleepLocksCount;
 #ifdef DEEP_SLEEP_DELAY
     /**
        The time in millis since start up when the last task finished.
@@ -307,8 +310,6 @@ class Scheduler {
     */
     unsigned long lastTaskFinishedMillis;
 #endif
-
-    void insertTask(Task *task);
 
     virtual void taskWdtEnable(const uint8_t value) = 0;
     virtual void taskWdtReset() = 0;
