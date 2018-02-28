@@ -9,9 +9,9 @@
 class SchedulerEsp: public Scheduler {
   public:
     /**
-      Do not call this method, it is used by the watchdog interrupt.
+        Do not call this method, it is used by the watchdog interrupt.
     */
-    static void isrWatchdogExpired();
+    static void isrWatchdogExpiredStatic();
   private:
     hw_timer_t *timer = NULL;
 
@@ -31,16 +31,24 @@ class SchedulerEsp: public Scheduler {
 */
 SchedulerEsp scheduler;
 
-/**
-   iInterrupt service routine called when the timer expires.
-*/
-inline void SchedulerEsp::isrWatchdogExpired() {
+void SchedulerEsp::isrWatchdogExpiredStatic() {
+#ifdef SUPERVISION_CALLBACK
+  if (supervisionCallbackRunnable != NULL) {
+    // No need to supervise this call as this interrupt has a time limit.
+    // When it expires, the system is restarted.
+    supervisionCallbackRunnable->run();
+  }
+#endif
+
   Serial.println(F("watchdog reboot"));
   esp_restart_noos();
 }
 
+/**
+   Interrupt service routine called when the timer expires.
+*/
 void IRAM_ATTR isrWatchdogExpired() {
-  SchedulerEsp::isrWatchdogExpired();
+  SchedulerEsp::isrWatchdogExpiredStatic();
 }
 
 void SchedulerEsp::taskWdtEnable(const uint8_t value) {

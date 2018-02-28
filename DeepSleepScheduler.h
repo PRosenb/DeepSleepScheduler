@@ -205,7 +205,7 @@ class Scheduler {
        See description of SUPERVISION_CALLBACK and SUPERVISION_CALLBACK_TIMEOUT.
        @param runnable: instance of Runnable where the run() method is called
     */
-    void setSupervisionCallback(const Runnable *runnable) {
+    void setSupervisionCallback(Runnable *runnable) {
       supervisionCallbackRunnable = runnable;
     }
 #endif
@@ -280,7 +280,7 @@ class Scheduler {
     static volatile unsigned long millisBeforeDeepSleep;
 
 #ifdef SUPERVISION_CALLBACK
-    static volatile const Runnable *supervisionCallbackRunnable;
+    static Runnable *supervisionCallbackRunnable;
 #endif
 
     /**
@@ -328,7 +328,7 @@ class Scheduler {
 volatile unsigned long Scheduler::millisInDeepSleep;
 volatile unsigned long Scheduler::millisBeforeDeepSleep;
 #ifdef SUPERVISION_CALLBACK
-volatile const Runnable *Scheduler::supervisionCallbackRunnable;
+Runnable *Scheduler::supervisionCallbackRunnable;
 #endif
 
 Scheduler::Scheduler() {
