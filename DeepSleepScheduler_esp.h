@@ -19,6 +19,7 @@ class SchedulerEsp: public Scheduler {
     virtual void taskWdtDisable();
     virtual void taskWdtReset();
     virtual void sleepIfRequired();
+    virtual bool isOurWakeupInterrupt();
     inline SleepMode evaluateSleepMode();
 };
 
@@ -112,6 +113,11 @@ inline void SchedulerEsp::taskWdtReset() {
   }
 }
 
+bool SchedulerEsp::isOurWakeupInterrupt() {
+  esp_sleep_wakeup_cause_t wakeupCause = esp_sleep_get_wakeup_cause();
+  return wakeupCause == ESP_SLEEP_WAKEUP_TIMER;
+}
+
 inline void SchedulerEsp::sleepIfRequired() {
   noInterrupts();
   bool queueEmpty = first == NULL;
@@ -191,8 +197,7 @@ Scheduler::SleepMode SchedulerEsp::evaluateSleepMode() {
   interrupts();
 
   SleepMode sleepMode = NO_SLEEP;
-  esp_sleep_wakeup_cause_t wakeupCause = esp_sleep_get_wakeup_cause();
-  if (wakeupCause == ESP_SLEEP_WAKEUP_TIMER) {
+  if (isOurWakeupInterrupt()) {
     // not woken up during sleep
 
     unsigned long maxWaitTimeMillis = 0;
