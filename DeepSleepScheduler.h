@@ -275,10 +275,9 @@ class Scheduler {
       SLEEP
     };
 
-    // variables used in the interrupt
+    // variables used in the interrupt (in case of AVR)
     static volatile unsigned long millisInDeepSleep;
     static volatile unsigned long millisBeforeDeepSleep;
-    static volatile unsigned int wdtSleepTimeMillis;
 
 #ifdef SUPERVISION_CALLBACK
     static volatile const Runnable *supervisionCallbackRunnable;
@@ -328,7 +327,6 @@ class Scheduler {
 
 volatile unsigned long Scheduler::millisInDeepSleep;
 volatile unsigned long Scheduler::millisBeforeDeepSleep;
-volatile unsigned int Scheduler::wdtSleepTimeMillis;
 #ifdef SUPERVISION_CALLBACK
 volatile const Runnable *Scheduler::supervisionCallbackRunnable;
 #endif
@@ -341,7 +339,6 @@ Scheduler::Scheduler() {
 
   millisInDeepSleep = 0;
   millisBeforeDeepSleep = 0;
-  wdtSleepTimeMillis = 0;
 
   first = NULL;
   current = NULL;

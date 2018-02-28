@@ -61,11 +61,15 @@
 
 class SchedulerAvr: public Scheduler {
   public:
+    SchedulerAvr();
     /**
       Do not call this method, it is used by the watchdog interrupt.
     */
     static void isrWdt();
   private:
+    // variables used in the interrupt
+    static volatile unsigned int wdtSleepTimeMillis;
+
     virtual void taskWdtEnable(const uint8_t value);
     virtual void taskWdtDisable();
     virtual void taskWdtReset();
@@ -84,6 +88,12 @@ class SchedulerAvr: public Scheduler {
    the one and only instance of Scheduler
 */
 SchedulerAvr scheduler;
+
+volatile unsigned int SchedulerAvr::wdtSleepTimeMillis;
+
+SchedulerAvr::SchedulerAvr() {
+  wdtSleepTimeMillis = 0;
+}
 
 void SchedulerAvr::taskWdtEnable(const uint8_t value) {
   wdt_enable(value);
