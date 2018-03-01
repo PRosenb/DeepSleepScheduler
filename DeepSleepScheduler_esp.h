@@ -140,7 +140,7 @@ inline void SchedulerEsp::sleepIfRequired() {
         && millis() >= lastTaskFinishedMillis + DEEP_SLEEP_DELAY
 #endif
        ) {
-      //      wdt_disable();
+      taskWdtDisable();
       sleepMode = SLEEP;
     } else {
       sleepMode = IDLE;
