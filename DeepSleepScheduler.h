@@ -583,7 +583,7 @@ void Scheduler::execute() {
   // never executed so no need to deactivate the WDT
 }
 
-#ifdef ESP32 || ESP8266
+#ifdef ESP32
 #include "DeepSleepScheduler_esp.h"
 #else
 #include "DeepSleepScheduler_avr.h"
@@ -592,7 +592,7 @@ void Scheduler::execute() {
 #endif // #ifndef LIBCALL_DEEP_SLEEP_SCHEDULER
 #endif // #ifndef DEEP_SLEEP_SCHEDULER_H
 
-#ifdef ESP32 || ESP8266
+#ifdef ESP32
 extern SchedulerEsp scheduler;
 #else
 extern SchedulerAvr scheduler;
