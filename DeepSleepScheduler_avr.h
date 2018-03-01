@@ -114,7 +114,7 @@ bool SchedulerAvr::isOurWakeupInterrupt() {
   return wdtSleepTimeMillisLocal == 0;
 }
 
-inline void SchedulerAvr::sleepIfRequired() {
+void SchedulerAvr::sleepIfRequired() {
   // Enable sleep bit with sleep_enable() before the sleep time evaluation because it can happen
   // that the WDT interrupt occurs during sleep time evaluation but before the CPU
   // sleeps. In that case, the WDT interrupt clears the sleep bit and the CPU will not sleep
@@ -171,7 +171,7 @@ inline void SchedulerAvr::sleepIfRequired() {
   sleep_disable();
 }
 
-Scheduler::SleepMode SchedulerAvr::evaluateSleepModeAndEnableWdtIfRequired() {
+inline Scheduler::SleepMode SchedulerAvr::evaluateSleepModeAndEnableWdtIfRequired() {
   noInterrupts();
   unsigned long wdtSleepTimeMillisLocal = wdtSleepTimeMillis;
   unsigned long currentSchedulerMillis = getMillis();

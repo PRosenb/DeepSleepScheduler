@@ -126,7 +126,7 @@ bool SchedulerEsp::isOurWakeupInterrupt() {
   return wakeupCause == ESP_SLEEP_WAKEUP_TIMER;
 }
 
-inline void SchedulerEsp::sleepIfRequired() {
+void SchedulerEsp::sleepIfRequired() {
   noInterrupts();
   bool queueEmpty = first == NULL;
   interrupts();
@@ -194,7 +194,7 @@ inline void SchedulerEsp::sleepIfRequired() {
   }
 }
 
-Scheduler::SleepMode SchedulerEsp::evaluateSleepMode() {
+inline Scheduler::SleepMode SchedulerEsp::evaluateSleepMode() {
   noInterrupts();
   unsigned long currentSchedulerMillis = getMillis();
 
