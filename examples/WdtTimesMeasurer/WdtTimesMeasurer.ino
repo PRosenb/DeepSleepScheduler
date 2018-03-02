@@ -41,7 +41,7 @@ volatile unsigned int avgCorrectionSumIndex = 0;
 volatile signed long avgCorrectionSum[CORRECTIONS_COUNT];
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   delay(150);
   Serial.println(F("WdtTimesMeasurer"));
 

@@ -15,7 +15,7 @@
 volatile unsigned int wdtTime =  BEFORE_FIRST;
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
   pinMode(OUTPUT_PIN, OUTPUT);
   digitalWrite(OUTPUT_PIN, LOW);
   pinMode(LED_PIN, OUTPUT);
