@@ -198,6 +198,9 @@ class Scheduler {
     }
 
 #ifdef SUPERVISION_CALLBACK
+#ifdef ESP8266
+#error "SUPERVISION_CALLBACK not supported for ESP8266"
+#endif
     /**
        Sets the runnable to be called when the task supervision detects a task that runs too long.
        The run() method will be called from the watchdog interrupt what means, that
@@ -583,7 +586,7 @@ void Scheduler::execute() {
   // never executed so no need to deactivate the WDT
 }
 
-#ifdef ESP32
+#if defined(ESP32) || defined(ESP8266)
 #include "DeepSleepScheduler_esp.h"
 #else
 #include "DeepSleepScheduler_avr.h"
@@ -592,7 +595,7 @@ void Scheduler::execute() {
 #endif // #ifndef LIBCALL_DEEP_SLEEP_SCHEDULER
 #endif // #ifndef DEEP_SLEEP_SCHEDULER_H
 
-#ifdef ESP32
+#if defined(ESP32) || defined(ESP8266)
 extern SchedulerEsp scheduler;
 #else
 extern SchedulerAvr scheduler;

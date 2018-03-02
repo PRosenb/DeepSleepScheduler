@@ -1,12 +1,16 @@
 
+#ifdef ESP32
 #include <esp_sleep.h>
 #include <esp32-hal-timer.h>
+#endif
 
 // -------------------------------------------------------------------------------------------------
 // Definition (usually in H file)
 // -------------------------------------------------------------------------------------------------
 
 class SchedulerEsp: public Scheduler {
+#ifdef ESP32
+// -------------------------------------------------------------------------------------------------
   public:
     /**
         Do not call this method, it is used by the watchdog interrupt.
@@ -14,11 +18,16 @@ class SchedulerEsp: public Scheduler {
     static void isrWatchdogExpiredStatic();
   private:
     hw_timer_t *timer = NULL;
+#endif
+// -------------------------------------------------------------------------------------------------
 
+  private:
     virtual void taskWdtEnable(const uint8_t value);
     virtual void taskWdtDisable();
     virtual void taskWdtReset();
+    inline unsigned long wdtTimeoutToDurationMs(const uint8_t value);
     virtual void sleepIfRequired();
+    inline void sleep(unsigned long durationMs, bool queueEmpty);
     virtual bool isOurWakeupInterrupt();
     inline SleepMode evaluateSleepMode();
 };
@@ -31,6 +40,8 @@ class SchedulerEsp: public Scheduler {
 */
 SchedulerEsp scheduler;
 
+#ifdef ESP32
+// -------------------------------------------------------------------------------------------------
 void SchedulerEsp::isrWatchdogExpiredStatic() {
 #ifdef SUPERVISION_CALLBACK
   if (supervisionCallbackRunnable != NULL) {
@@ -52,6 +63,60 @@ void IRAM_ATTR isrWatchdogExpired() {
 }
 
 void SchedulerEsp::taskWdtEnable(const uint8_t value) {
+  const unsigned long durationMs = wdtTimeoutToDurationMs(value);
+  //timer 0, div 80
+  timer = timerBegin(0, 80, true);
+  timerAttachInterrupt(timer, &isrWatchdogExpired, true);
+  //set time in us
+  timerAlarmWrite(timer, durationMs * 1000, false);
+  //enable interrupt
+  timerAlarmEnable(timer);
+}
+
+void SchedulerEsp::taskWdtDisable() {
+  if (timer != NULL) {
+    //disable interrupt
+    timerDetachInterrupt(timer);
+    timerEnd(timer);
+    timer = NULL;
+  }
+}
+
+void SchedulerEsp::taskWdtReset() {
+  //reset timer (feed watchdog)
+  if (timer != NULL) {
+    timerWrite(timer, 0);
+  }
+}
+
+bool SchedulerEsp::isOurWakeupInterrupt() {
+  esp_sleep_wakeup_cause_t wakeupCause = esp_sleep_get_wakeup_cause();
+  return wakeupCause == ESP_SLEEP_WAKEUP_TIMER;
+}
+
+#elif ESP8266
+// -------------------------------------------------------------------------------------------------
+void SchedulerEsp::taskWdtEnable(const uint8_t value) {
+  const unsigned long durationMs = wdtTimeoutToDurationMs(value);
+  ESP.wdtEnable(durationMs);
+}
+
+void SchedulerEsp::taskWdtDisable() {
+  ESP.wdtDisable();
+}
+
+void SchedulerEsp::taskWdtReset() {
+  ESP.wdtFeed();
+}
+
+bool SchedulerEsp::isOurWakeupInterrupt() {
+  // TODO support for ESP8266
+  return false;
+}
+#endif
+// -------------------------------------------------------------------------------------------------
+
+inline unsigned long SchedulerEsp::wdtTimeoutToDurationMs(const uint8_t value) {
   unsigned long durationMs;
   switch (value) {
     case TIMEOUT_15Ms: {
@@ -95,35 +160,7 @@ void SchedulerEsp::taskWdtEnable(const uint8_t value) {
         break;
       }
   }
-
-  //timer 0, div 80
-  timer = timerBegin(0, 80, true);
-  timerAttachInterrupt(timer, &isrWatchdogExpired, true);
-  //set time in us
-  timerAlarmWrite(timer, durationMs * 1000, false);
-  //enable interrupt
-  timerAlarmEnable(timer);
-}
-
-void SchedulerEsp::taskWdtDisable() {
-  if (timer != NULL) {
-    //disable interrupt
-    timerDetachInterrupt(timer);
-    timerEnd(timer);
-    timer = NULL;
-  }
-}
-
-inline void SchedulerEsp::taskWdtReset() {
-  //reset timer (feed watchdog)
-  if (timer != NULL) {
-    timerWrite(timer, 0);
-  }
-}
-
-bool SchedulerEsp::isOurWakeupInterrupt() {
-  esp_sleep_wakeup_cause_t wakeupCause = esp_sleep_get_wakeup_cause();
-  return wakeupCause == ESP_SLEEP_WAKEUP_TIMER;
+  return durationMs;
 }
 
 void SchedulerEsp::sleepIfRequired() {
@@ -165,22 +202,7 @@ void SchedulerEsp::sleepIfRequired() {
       }
       interrupts();
 
-      if (maxWaitTimeMillis > 0) {
-        esp_sleep_enable_timer_wakeup(maxWaitTimeMillis * 1000L);
-      } else {
-        if (queueEmpty) {
-          // workaround for bug
-          esp_sleep_enable_timer_wakeup(UINT64_MAX);
-
-#ifdef ESP_DEEP_SLEEP_FOR_INFINITE_SLEEP
-          esp_deep_sleep_start(); // does not return
-#endif
-        } else {
-          // should not happen
-          esp_sleep_enable_timer_wakeup(1);
-        }
-      }
-      esp_light_sleep_start();
+      sleep(maxWaitTimeMillis, queueEmpty);
 
       // correct millisInDeepSleep after wake up
       millisInDeepSleep += maxWaitTimeMillis;
@@ -256,4 +278,36 @@ inline Scheduler::SleepMode SchedulerEsp::evaluateSleepMode() {
   }
   return sleepMode;
 }
+
+#ifdef ESP32
+// -------------------------------------------------------------------------------------------------
+void SchedulerEsp::sleep(unsigned long durationMs, bool queueEmpty) {
+  if (durationMs > 0) {
+    esp_sleep_enable_timer_wakeup(durationMs * 1000L);
+  } else if (queueEmpty) {
+    // workaround for bug
+    esp_sleep_enable_timer_wakeup(UINT64_MAX);
+
+#ifdef ESP_DEEP_SLEEP_FOR_INFINITE_SLEEP
+    esp_deep_sleep_start(); // does not return
+#endif
+  } else {
+    // should not happen
+    esp_sleep_enable_timer_wakeup(1);
+  }
+
+  esp_light_sleep_start();
+}
+#elif ESP8266
+// -------------------------------------------------------------------------------------------------
+void SchedulerEsp::sleep(unsigned long durationMs, bool queueEmpty) {
+#ifdef ESP_DEEP_SLEEP_FOR_INFINITE_SLEEP
+  if (queueEmpty) {
+    ESP.deepSleep(0); // does not return
+  }
+#endif
+  delay(durationMs);
+}
+#endif
+// -------------------------------------------------------------------------------------------------
 
