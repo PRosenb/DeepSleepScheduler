@@ -317,7 +317,7 @@ class Scheduler {
     virtual void taskWdtReset() = 0;
     virtual void taskWdtDisable() = 0;
     virtual void sleepIfRequired() = 0;
-    virtual bool isOurWakeupInterrupt() = 0;
+    virtual bool isWakeupByOtherInterrupt() = 0;
 
     // default does nothing, only used for AVR
     virtual void wdtEnableInterrupt() {}
@@ -565,7 +565,7 @@ void Scheduler::execute() {
 
     sleepIfRequired();
 
-    if (isOurWakeupInterrupt()) {
+    if (!isWakeupByOtherInterrupt()) {
       // woken up due to WDT interrupt
       noInterrupts();
       const TaskTimeout taskTimeoutLocal = taskTimeout;

@@ -74,7 +74,7 @@ class SchedulerAvr: public Scheduler {
     virtual void taskWdtDisable();
     virtual void taskWdtReset();
     virtual void sleepIfRequired();
-    virtual bool isOurWakeupInterrupt();
+    virtual bool isWakeupByOtherInterrupt();
 
     virtual void wdtEnableInterrupt();
     inline SleepMode evaluateSleepModeAndEnableWdtIfRequired();
@@ -107,11 +107,11 @@ void SchedulerAvr::taskWdtReset() {
   wdt_reset();
 }
 
-bool SchedulerAvr::isOurWakeupInterrupt() {
+bool SchedulerAvr::isWakeupByOtherInterrupt() {
   noInterrupts();
   unsigned long wdtSleepTimeMillisLocal = wdtSleepTimeMillis;
   interrupts();
-  return wdtSleepTimeMillisLocal == 0;
+  return wdtSleepTimeMillisLocal != 0;
 }
 
 void SchedulerAvr::sleepIfRequired() {
@@ -183,7 +183,7 @@ inline Scheduler::SleepMode SchedulerAvr::evaluateSleepModeAndEnableWdtIfRequire
   interrupts();
 
   SleepMode sleepMode = NO_SLEEP;
-  if (isOurWakeupInterrupt()) {
+  if (!isWakeupByOtherInterrupt()) {
     // not woken up during WDT sleep
 
     unsigned long maxWaitTimeMillis = 0;
