@@ -10,7 +10,7 @@
 
 class SchedulerEsp: public Scheduler {
 #ifdef ESP32
-// -------------------------------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------------------------
   public:
     /**
         Do not call this method, it is used by the watchdog interrupt.
@@ -19,7 +19,7 @@ class SchedulerEsp: public Scheduler {
   private:
     hw_timer_t *timer = NULL;
 #endif
-// -------------------------------------------------------------------------------------------------
+    // ---------------------------------------------------------------------------------------------
 
   private:
     virtual void taskWdtEnable(const uint8_t value);
@@ -64,9 +64,11 @@ void IRAM_ATTR isrWatchdogExpired() {
 
 void SchedulerEsp::taskWdtEnable(const uint8_t value) {
   const unsigned long durationMs = wdtTimeoutToDurationMs(value);
-  //timer 0, div 80
-  timer = timerBegin(0, 80, true);
-  timerAttachInterrupt(timer, &isrWatchdogExpired, true);
+  if (timer == NULL) {
+    //timer 0, div 80
+    timer = timerBegin(0, 80, true);
+    timerAttachInterrupt(timer, &isrWatchdogExpired, true);
+  }
   //set time in us
   timerAlarmWrite(timer, durationMs * 1000, false);
   //enable interrupt
