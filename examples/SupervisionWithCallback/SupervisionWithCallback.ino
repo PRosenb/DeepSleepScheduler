@@ -2,7 +2,11 @@
 #define SUPERVISION_CALLBACK_TIMEOUT WDTO_1S
 #include <DeepSleepScheduler.h>
 
+#ifdef ESP32
+#define LED_PIN 2
+#else
 #define LED_PIN 13
+#endif
 
 void block() {
   while (1);

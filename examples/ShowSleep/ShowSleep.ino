@@ -12,7 +12,11 @@
  * it wakes up to handle that callback.
  */
 
+#ifdef ESP32
+#define AWAKE_INDICATION_PIN 2
+#else
 #define AWAKE_INDICATION_PIN 13
+#endif
 #include <DeepSleepScheduler.h>
 
 void keepCpuOn() {
