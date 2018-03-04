@@ -2,6 +2,7 @@
 #ifdef ESP32
 #include <esp_sleep.h>
 #include <esp32-hal-timer.h>
+#include <soc/rtc.h>
 #endif
 
 // -------------------------------------------------------------------------------------------------
@@ -12,6 +13,13 @@ class SchedulerEsp: public Scheduler {
 #ifdef ESP32
     // ---------------------------------------------------------------------------------------------
   public:
+    virtual unsigned long getMillis() {
+      // https://forum.makehackvoid.com/t/playing-with-the-esp-32/1144/11
+      uint64_t rtcTime = rtc_time_get();
+      uint64_t rtcTimeUs = rtcTime * 20 / 3;  // ticks -> us 1,000,000/150,000
+      return rtcTimeUs / 1000;
+    }
+
     /**
         Do not call this method, it is used by the watchdog interrupt.
     */
@@ -207,6 +215,7 @@ void SchedulerEsp::sleepIfRequired() {
       sleep(maxWaitTimeMillis, queueEmpty);
 
       // correct millisInDeepSleep after wake up
+      // not used for ESP32
       millisInDeepSleep += maxWaitTimeMillis;
     } else { // IDLE
       yield();

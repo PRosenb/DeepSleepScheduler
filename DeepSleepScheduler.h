@@ -189,7 +189,7 @@ class Scheduler {
                This value does not consider the time when the CPU is in infinite deep sleep
                while nothing is in the queue.
     */
-    inline unsigned long getMillis() const {
+    virtual unsigned long getMillis() const {
       unsigned long value;
       noInterrupts();
       value = millis() + millisInDeepSleep;
