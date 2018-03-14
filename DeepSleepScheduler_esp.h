@@ -40,6 +40,9 @@ class SchedulerEsp: public Scheduler {
     inline SleepMode evaluateSleepMode();
 };
 
+extern SchedulerEsp scheduler;
+
+#ifndef LIBCALL_DEEP_SLEEP_SCHEDULER
 // -------------------------------------------------------------------------------------------------
 // Implementation (usuallly in CPP file)
 // -------------------------------------------------------------------------------------------------
@@ -322,3 +325,4 @@ void SchedulerEsp::sleep(unsigned long durationMs, bool queueEmpty) {
 #endif
 // -------------------------------------------------------------------------------------------------
 
+#endif // #ifndef LIBCALL_DEEP_SLEEP_SCHEDULER

@@ -81,6 +81,9 @@ class SchedulerAvr: public Scheduler {
     inline unsigned long wdtEnableForSleep(unsigned long maxWaitTimeMillis);
 };
 
+extern SchedulerAvr scheduler;
+
+#ifndef LIBCALL_DEEP_SLEEP_SCHEDULER
 // -------------------------------------------------------------------------------------------------
 // Implementation (usuallly in CPP file)
 // -------------------------------------------------------------------------------------------------
@@ -313,3 +316,4 @@ ISR (WDT_vect) {
   SchedulerAvr::isrWdt();
 }
 
+#endif // #ifndef LIBCALL_DEEP_SLEEP_SCHEDULER
