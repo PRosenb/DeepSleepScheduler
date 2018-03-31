@@ -74,16 +74,20 @@ void IRAM_ATTR isrWatchdogExpired() {
 }
 
 void SchedulerEsp::taskWdtEnable(const uint8_t value) {
-  const unsigned long durationMs = wdtTimeoutToDurationMs(value);
-  if (timer == NULL) {
-    //timer 0, div 80
-    timer = timerBegin(0, 80, true);
-    timerAttachInterrupt(timer, &isrWatchdogExpired, true);
+  if (value != NO_SUPERVISION) {
+    const unsigned long durationMs = wdtTimeoutToDurationMs(value);
+    if (timer == NULL) {
+      //timer 0, div 80
+      timer = timerBegin(0, 80, true);
+      timerAttachInterrupt(timer, &isrWatchdogExpired, true);
+    }
+    //set time in us
+    timerAlarmWrite(timer, durationMs * 1000, false);
+    //enable interrupt
+    timerAlarmEnable(timer);
+  } else {
+    taskWdtDisable();
   }
-  //set time in us
-  timerAlarmWrite(timer, durationMs * 1000, false);
-  //enable interrupt
-  timerAlarmEnable(timer);
 }
 
 void SchedulerEsp::taskWdtDisable() {
