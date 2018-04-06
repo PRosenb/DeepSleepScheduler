@@ -5,10 +5,14 @@ DeepSleepScheduler is a lightweight, cooperative task scheduler library with con
 
 ## Features ##
 - Easy to use
-- Configurable sleep with `SLEEP_MODE_PWR_DOWN` or `SLEEP_MODE_IDLE` while no task is running
-- Configurable task supervision using hardware watchdog
+- Configurable task supervision (using hardware watchdog on AVR)
 - Schedule in interrupt
 - Small footprint
+- Supports multiple CPUs with the same API
+  - AVR based Arduino boards like Arduino Uno, Mega, Nano etc.
+  - ESP32
+  - ESP8266 (no sleep support)
+- Configurable sleep with `SLEEP_MODE_PWR_DOWN` or `SLEEP_MODE_IDLE` while no task is running (on AVR)
 
 ## Installation ##
 - The library can be installed directly in the [Arduino Software (IDE)](https://www.arduino.cc/en/Main/Software) as follows:
