@@ -197,23 +197,23 @@ You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/
 
     /**
        Acquire a lock to prevent the CPU from entering deep sleep.
-       acquireNoDeepSleepLock() supports up to 255 locks.
-       You need to call releaseNoDeepSleepLock() the same amount of times
-       as removeCallbacks() to allow the CPU to enter deep sleep again.
+       acquireNoSleepLock() supports up to 255 locks.
+       You need to call releaseNoSleepLock() the same amount of times
+       as removeCallbacks() to allow the CPU to enter sleep again.
     */
-    void acquireNoDeepSleepLock();
+    void acquireNoSleepLock();
 
     /**
-       Release the lock acquired by acquireNoDeepSleepLock(). Please make sure you
-       call releaseNoDeepSleepLock() the same amount of times as acquireNoDeepSleepLock(),
-       otherwise the CPU is not allowed to enter deep sleep.
+       Release the lock acquired by acquireNoSleepLock(). Please make sure you
+       call releaseNoSleepLock() the same amount of times as acquireNoSleepLock(),
+       otherwise the CPU is not allowed to enter sleep.
     */
-    void releaseNoDeepSleepLock();
+    void releaseNoSleepLock();
 
     /**
-       return: true if the CPU is currently allowed to enter deep sleep, false otherwise.
+       return: true if the CPU is currently allowed to enter sleep, false otherwise.
     */
-    bool doesDeepSleep() const;
+    bool doesSleep() const;
 
     /**
        Configure the supervision of future tasks. Can be deactivated with NO_SUPERVISION.
@@ -282,7 +282,7 @@ HIGH = active, LOW = sleeping
 - Definition and code are in the header file. It is done like this to allow the user to configure the library by using `#define`. You can still include the header file in multiple files of a project by using `#define LIBCALL_DEEP_SLEEP_SCHEDULER`. See [Define Options](#define-options).
 - When the CPU enters `SLEEP_MODE_PWR_DOWN`, the watchdog timer is used to wake it up again. The accuracy of the watchdog timer is not very well though. Further, the wake up time depends on the CPU type you are using. If you have certain time constraints, it may happen, that the schedule times are not precise enough.  
 One possibility is to adapt the sleep time corrections by setting the defines `SLEEP_TIME_XXX_CORRECTION` (see [Define Options](#define-options) and example [AdjustSleepTimeCorrections](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/AdjustSleepTimeCorrections/AdjustSleepTimeCorrections.ino)).  
-An other option is to disable deep sleep (`SLEEP_MODE_PWR_DOWN`) while scheduling with tight time constraints. To do so, use the methods `acquireNoDeepSleepLock()` and `releaseNoDeepSleepLock()` (see [Methods](#methods)). Please report values back to me if you do time measuring, thanks.
+An other option is to disable deep sleep (`SLEEP_MODE_PWR_DOWN`) while scheduling with tight time constraints. To do so, use the methods `acquireNoSleepLock()` and `releaseNoSleepLock()` (see [Methods](#methods)). Please report values back to me if you do time measuring, thanks.
 - While the CPU is in `SLEEP_MODE_PWR_DOWN`, the millis timer is not running. For this reason the current uptime is not known when an external interrupt occurs during this time. Instead of the current uptime, the uptime when the CPU started to sleep is taken when calculating the schedule time of a delayed task. This  means that these tasks are potentially scheduled too early because the uptime is corrected when the sleep time is finished.
 
 ## Contributions ##

@@ -158,24 +158,24 @@ class Scheduler {
     void removeCallbacks(Runnable *runnable);
 
     /**
-       Acquire a lock to prevent the CPU from entering deep sleep.
-       acquireNoDeepSleepLock() supports up to 255 locks.
-       You need to call releaseNoDeepSleepLock() the same amount of times
-       as removeCallbacks() to allow the CPU to enter deep sleep again.
+       Acquire a lock to prevent the CPU from entering sleep.
+       acquireNoSleepLock() supports up to 255 locks.
+       You need to call releaseNoSleepLock() the same amount of times
+       to allow the CPU to enter sleep again.
     */
-    void acquireNoDeepSleepLock();
+    void acquireNoSleepLock();
 
     /**
-       Release the lock acquired by acquireNoDeepSleepLock(). Please make sure you
-       call releaseNoDeepSleepLock() the same amount of times as acquireNoDeepSleepLock(),
-       otherwise the CPU is not allowed to enter deep sleep.
+       Release the lock acquired by acquireNoSleepLock(). Please make sure you
+       call releaseNoSleepLock() the same amount of times as acquireNoSleepLock(),
+       otherwise the CPU is not allowed to enter sleep.
     */
-    void releaseNoDeepSleepLock();
+    void releaseNoSleepLock();
 
     /**
-       return: true if the CPU is currently allowed to enter deep sleep, false otherwise.
+       return: true if the CPU is currently allowed to enter sleep, false otherwise.
     */
-    bool doesDeepSleep() const;
+    bool doesSleep() const;
 
     /**
        Configure the supervision of future tasks. Can be deactivated with NO_SUPERVISION.
@@ -265,9 +265,9 @@ class Scheduler {
     };
 
     /**
-      controls if deep sleep is done, 0 does deep sleep
+      controls if sleep is done, 0 does sleep
     */
-    byte noDeepSleepLocksCount;
+    byte noSleepLocksCount;
 
     void insertTask(Task *task);
 
@@ -346,7 +346,7 @@ Scheduler::Scheduler() {
   first = NULL;
   current = NULL;
   firstRegularlyScheduledUptimeAfterSleep = 0;
-  noDeepSleepLocksCount = 0;
+  noSleepLocksCount = 0;
 }
 
 void Scheduler::schedule(void (*callback)()) {
@@ -484,18 +484,18 @@ void Scheduler::removeCallbacks(Runnable *runnable) {
   interrupts();
 }
 
-void Scheduler::acquireNoDeepSleepLock() {
-  noDeepSleepLocksCount++;
+void Scheduler::acquireNoSleepLock() {
+  noSleepLocksCount++;
 }
 
-void Scheduler::releaseNoDeepSleepLock() {
-  if (noDeepSleepLocksCount != 0) {
-    noDeepSleepLocksCount--;
+void Scheduler::releaseNoSleepLock() {
+  if (noSleepLocksCount != 0) {
+    noSleepLocksCount--;
   }
 }
 
-bool Scheduler::doesDeepSleep() const {
-  return noDeepSleepLocksCount == 0;
+bool Scheduler::doesSleep() const {
+  return noSleepLocksCount == 0;
 }
 
 void Scheduler::setTaskTimeout(TaskTimeout taskTimeout) {

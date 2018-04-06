@@ -189,7 +189,7 @@ void SchedulerEsp::sleepIfRequired() {
     sleepMode = evaluateSleepMode();
   } else {
     // nothing in the queue
-    if (doesDeepSleep()
+    if (doesSleep()
 #ifdef DEEP_SLEEP_DELAY
         && millis() >= lastTaskFinishedMillis + DEEP_SLEEP_DELAY
 #endif
@@ -255,7 +255,7 @@ inline Scheduler::SleepMode SchedulerEsp::evaluateSleepMode() {
 
     if (maxWaitTimeMillis == 0) {
       sleepMode = NO_SLEEP;
-    } else if (!doesDeepSleep() || maxWaitTimeMillis < BUFFER_TIME
+    } else if (!doesSleep() || maxWaitTimeMillis < BUFFER_TIME
 #ifdef DEEP_SLEEP_DELAY
                || millis() < lastTaskFinishedMillis + DEEP_SLEEP_DELAY
 #endif

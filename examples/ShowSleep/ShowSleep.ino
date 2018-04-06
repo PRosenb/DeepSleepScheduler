@@ -20,15 +20,15 @@
 #include <DeepSleepScheduler.h>
 
 void keepCpuOn() {
-  // As many times as aquireNoDeepSleepLock() is called, we also need
-  // to call releaseNoDeepSleepLock() to let the CPU fall into deep sleep
+  // As many times as aquireNoSleepLock() is called, we also need
+  // to call releaseNoSleepLock() to let the CPU fall into deep sleep
   // again.
-  scheduler.acquireNoDeepSleepLock();
+  scheduler.acquireNoSleepLock();
   scheduler.scheduleDelayed(allowCpuToSleep, 3000);
 }
 
 void allowCpuToSleep() {
-  scheduler.releaseNoDeepSleepLock();
+  scheduler.releaseNoSleepLock();
   scheduler.scheduleDelayed(keepCpuOn, 3000);
 }
 
