@@ -77,6 +77,8 @@ class SchedulerAvr: public Scheduler {
   private:
     // variables used in the interrupt
     static volatile unsigned int wdtSleepTimeMillis;
+    static volatile unsigned long millisInDeepSleep;
+    static volatile unsigned long millisBeforeDeepSleep;
 
     virtual void taskWdtEnable(const uint8_t value);
     virtual void taskWdtDisable();
@@ -101,9 +103,13 @@ extern SchedulerAvr scheduler;
 SchedulerAvr scheduler;
 
 volatile unsigned int SchedulerAvr::wdtSleepTimeMillis;
+volatile unsigned long SchedulerAvr::millisInDeepSleep;
+volatile unsigned long SchedulerAvr::millisBeforeDeepSleep;
 
 SchedulerAvr::SchedulerAvr() {
   wdtSleepTimeMillis = 0;
+  millisInDeepSleep = 0;
+  millisBeforeDeepSleep = 0;
 }
 
 void SchedulerAvr::taskWdtEnable(const uint8_t value) {

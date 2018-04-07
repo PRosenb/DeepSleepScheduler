@@ -272,10 +272,6 @@ class Scheduler {
       SLEEP
     };
 
-    // variables used in the interrupt (in case of AVR)
-    static volatile unsigned long millisInDeepSleep;
-    static volatile unsigned long millisBeforeDeepSleep;
-
 #ifdef SUPERVISION_CALLBACK
     static Runnable *supervisionCallbackRunnable;
 #endif
@@ -322,8 +318,6 @@ class Scheduler {
 // Implementation (usuallly in CPP file)
 // -------------------------------------------------------------------------------------------------
 
-volatile unsigned long Scheduler::millisInDeepSleep;
-volatile unsigned long Scheduler::millisBeforeDeepSleep;
 #ifdef SUPERVISION_CALLBACK
 Runnable *Scheduler::supervisionCallbackRunnable;
 #endif
@@ -333,9 +327,6 @@ Scheduler::Scheduler() {
   pinMode(AWAKE_INDICATION_PIN, OUTPUT);
 #endif
   taskTimeout = TIMEOUT_8S;
-
-  millisInDeepSleep = 0;
-  millisBeforeDeepSleep = 0;
 
   first = NULL;
   current = NULL;

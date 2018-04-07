@@ -226,10 +226,6 @@ void SchedulerEsp::sleepIfRequired() {
       interrupts();
 
       sleep(maxWaitTimeMillis, queueEmpty);
-
-      // correct millisInDeepSleep after wake up
-      // not used for ESP32
-      millisInDeepSleep += maxWaitTimeMillis;
     } else { // IDLE
       yield();
     }
@@ -271,10 +267,6 @@ inline Scheduler::SleepMode SchedulerEsp::evaluateSleepMode() {
     } else {
       sleepMode = SLEEP;
       firstRegularlyScheduledUptimeAfterSleep = firstScheduledUptimeMillis;
-
-      noInterrupts();
-      millisBeforeDeepSleep = millis();
-      interrupts();
     }
   } else {
     // we woke up due to an other interrupt.
