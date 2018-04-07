@@ -17,12 +17,16 @@ void highValue() {
 }
 
 void lowValue() {
-  analogWrite(PWN_PIN, 100);
+  analogWrite(PWN_PIN, 10);
   scheduler.scheduleDelayed(highValue, 5000);
 }
 
 void setup() {
   pinMode(PWN_PIN, OUTPUT);
+  #ifdef ESP8266
+    analogWriteRange(255);
+  #endif
+
   scheduler.schedule(lowValue);
 }
 
