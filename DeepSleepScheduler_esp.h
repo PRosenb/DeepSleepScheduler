@@ -13,7 +13,7 @@ class SchedulerEsp: public Scheduler {
 #ifdef ESP32
     // ---------------------------------------------------------------------------------------------
   public:
-    virtual unsigned long getMillis() {
+    virtual unsigned long getMillis() const {
       // https://forum.makehackvoid.com/t/playing-with-the-esp-32/1144/11
       uint64_t rtcTime = rtc_time_get();
       uint64_t rtcTimeUs = rtcTime * 20 / 3;  // ticks -> us 1,000,000/150,000
@@ -26,6 +26,12 @@ class SchedulerEsp: public Scheduler {
     static void isrWatchdogExpiredStatic();
   private:
     hw_timer_t *timer = NULL;
+#elif ESP8266
+  public:
+    virtual unsigned long getMillis() const {
+      // on ESP8266 we do not support sleep, so millis() stays correct.
+      return millis();
+    }
 #endif
     // ---------------------------------------------------------------------------------------------
 

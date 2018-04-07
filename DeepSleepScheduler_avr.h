@@ -66,6 +66,14 @@ class SchedulerAvr: public Scheduler {
       Do not call this method, it is used by the watchdog interrupt.
     */
     static void isrWdt();
+    virtual unsigned long getMillis() const {
+      unsigned long value;
+      noInterrupts();
+      value = millis() + millisInDeepSleep;
+      interrupts();
+      // Serial.print("millisInDeepSleep: ");Serial.println(millisInDeepSleep);
+      return value;
+    }
   private:
     // variables used in the interrupt
     static volatile unsigned int wdtSleepTimeMillis;

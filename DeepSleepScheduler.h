@@ -189,13 +189,7 @@ class Scheduler {
                This value does not consider the time when the CPU is in infinite deep sleep
                while nothing is in the queue.
     */
-    virtual unsigned long getMillis() const {
-      unsigned long value;
-      noInterrupts();
-      value = millis() + millisInDeepSleep;
-      interrupts();
-      return value;
-    }
+    virtual unsigned long getMillis() const = 0;
 
 #ifdef SUPERVISION_CALLBACK
 #ifdef ESP8266
