@@ -2,19 +2,17 @@
 
 #ifdef ESP32
 #define INTERRUPT_PIN 4
-#define LED_PIN 2
 #else
 #define INTERRUPT_PIN 2
-#define LED_PIN 13
 #endif
 
 void ledOn() {
-  digitalWrite(LED_PIN, HIGH);
+  digitalWrite(LED_BUILTIN, HIGH);
   scheduler.scheduleDelayed(ledOff, 2000);
 }
 
 void ledOff() {
-  digitalWrite(LED_PIN, LOW);
+  digitalWrite(LED_BUILTIN, LOW);
 }
 
 void isrInterruptPin() {
@@ -29,7 +27,7 @@ void setup() {
 
   pinMode(INTERRUPT_PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(INTERRUPT_PIN), isrInterruptPin, FALLING);
-  pinMode(LED_PIN, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
 }
 
 void loop() {

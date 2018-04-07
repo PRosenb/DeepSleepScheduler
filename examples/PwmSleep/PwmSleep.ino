@@ -1,8 +1,8 @@
 // do not use SLEEP_MODE_PWR_DOWN to prevent that
 // the asynchronous clock is stopped
 #define SLEEP_MODE SLEEP_MODE_PWR_SAVE
-// show then the CPU is active on PIN 13
-#define AWAKE_INDICATION_PIN 13
+// show then the CPU is active on LED_BUILTIN
+#define AWAKE_INDICATION_PIN LED_BUILTIN
 #include <DeepSleepScheduler.h>
 
 // the PWM signal can only be used in sleep mode on

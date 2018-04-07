@@ -4,19 +4,13 @@
 #include <esp_sleep.h>
 #endif
 
-#ifdef ESP32
-#define LED_PIN 2
-#else
-#define LED_PIN 13
-#endif
-
 void ledOn() {
-  digitalWrite(LED_PIN, HIGH);
+  digitalWrite(LED_BUILTIN, HIGH);
   scheduler.scheduleDelayed(ledOff, 1000);
 }
 
 void ledOff() {
-  digitalWrite(LED_PIN, LOW);
+  digitalWrite(LED_BUILTIN, LOW);
   scheduler.scheduleDelayed(ledOn, 1000);
 }
 
@@ -27,7 +21,7 @@ void setup() {
   esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
 #endif
 
-  pinMode(LED_PIN, OUTPUT);
+  pinMode(LED_BUILTIN, OUTPUT);
   scheduler.schedule(ledOn);
 }
 

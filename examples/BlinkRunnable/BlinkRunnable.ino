@@ -1,13 +1,5 @@
 #include <DeepSleepScheduler.h>
 
-#ifdef ESP32
-#define LED_PIN1 2
-#define LED_PIN2 4
-#else
-#define LED_PIN1 12
-#define LED_PIN2 13
-#endif
-
 class BlinkRunnable: public Runnable {
   private:
     bool ledOn = true;
@@ -36,10 +28,8 @@ void setup() {
   esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
 #endif
 
-  BlinkRunnable *blinkRunnable1 = new BlinkRunnable(LED_PIN1, 1000);
-  BlinkRunnable *blinkRunnable2 = new BlinkRunnable(LED_PIN2, 500);
-  scheduler.schedule(blinkRunnable1);
-  scheduler.schedule(blinkRunnable2);
+  BlinkRunnable *blinkRunnable = new BlinkRunnable(LED_BUILTIN, 1000);
+  scheduler.schedule(blinkRunnable);
 }
 
 void loop() {
