@@ -298,21 +298,26 @@ inline Scheduler::SleepMode SchedulerEsp::evaluateSleepMode() {
 #ifdef ESP32
 // -------------------------------------------------------------------------------------------------
 void SchedulerEsp::sleep(unsigned long durationMs, bool queueEmpty) {
+  bool timerWakeup;
   if (durationMs > 0) {
     esp_sleep_enable_timer_wakeup(durationMs * 1000L);
+    timerWakeup = true;
   } else if (queueEmpty) {
-    // workaround for bug
-    esp_sleep_enable_timer_wakeup(UINT64_MAX);
-
 #ifdef ESP_DEEP_SLEEP_FOR_INFINITE_SLEEP
     esp_deep_sleep_start(); // does not return
 #endif
+    timerWakeup = false;
   } else {
     // should not happen
     esp_sleep_enable_timer_wakeup(1);
+    timerWakeup = true;
   }
 
   esp_light_sleep_start();
+
+  if (timerWakeup) {
+    esp_sleep_disable_wakeup_source(ESP_SLEEP_WAKEUP_TIMER);
+  }
 }
 #elif ESP8266
 // -------------------------------------------------------------------------------------------------
