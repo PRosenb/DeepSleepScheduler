@@ -42,7 +42,6 @@ class SchedulerEsp: public Scheduler {
     inline unsigned long wdtTimeoutToDurationMs(const uint8_t value);
     virtual void sleepIfRequired();
     inline void sleep(unsigned long durationMs, bool queueEmpty);
-    virtual bool isWakeupByOtherInterrupt();
     inline SleepMode evaluateSleepMode();
 };
 
@@ -112,11 +111,6 @@ void SchedulerEsp::taskWdtReset() {
   }
 }
 
-bool SchedulerEsp::isWakeupByOtherInterrupt() {
-  esp_sleep_wakeup_cause_t wakeupCause = esp_sleep_get_wakeup_cause();
-  return wakeupCause != 0 && wakeupCause != ESP_SLEEP_WAKEUP_TIMER;
-}
-
 #elif ESP8266
 // -------------------------------------------------------------------------------------------------
 void SchedulerEsp::taskWdtEnable(const uint8_t value) {
@@ -130,11 +124,6 @@ void SchedulerEsp::taskWdtDisable() {
 
 void SchedulerEsp::taskWdtReset() {
   ESP.wdtFeed();
-}
-
-bool SchedulerEsp::isWakeupByOtherInterrupt() {
-  // TODO support for ESP8266
-  return false;
 }
 #endif
 // -------------------------------------------------------------------------------------------------
