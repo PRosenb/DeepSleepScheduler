@@ -288,13 +288,6 @@ class Scheduler {
        the task currently running or null if none running
     */
     Task *current;
-    /**
-       Stores the time of the task from which the sleep time of the WDT is
-       calculated when it is put to sleep.
-       In case an interrupt schedules a new time, this time is compared against
-       it to check if the new time is before the WDT would wake up anyway.
-    */
-    unsigned long firstRegularlyScheduledUptimeAfterSleep;
 #ifdef DEEP_SLEEP_DELAY
     /**
        The time in millis since start up when the last task finished.
@@ -333,7 +326,6 @@ Scheduler::Scheduler() {
 
   first = NULL;
   current = NULL;
-  firstRegularlyScheduledUptimeAfterSleep = 0;
   noSleepLocksCount = 0;
 }
 
@@ -554,7 +546,8 @@ void Scheduler::execute() {
     sleepIfRequired();
 
     if (!isWakeupByOtherInterrupt()) {
-      // woken up due to WDT interrupt
+      // woken up due to WDT interrupt in case of AVR
+      // always executed for esp
       noInterrupts();
       const TaskTimeout taskTimeoutLocal = taskTimeout;
       interrupts();
@@ -569,7 +562,7 @@ void Scheduler::execute() {
         // tasks are not suppervised, deactivate WDT
         taskWdtDisable();
       }
-    } // else the wd is still running
+    } // else the wd is still running in case of AVR
   }
   // never executed so no need to deactivate the WDT
 }

@@ -79,6 +79,13 @@ class SchedulerAvr: public Scheduler {
     static volatile unsigned int wdtSleepTimeMillis;
     static volatile unsigned long millisInDeepSleep;
     static volatile unsigned long millisBeforeDeepSleep;
+    /**
+       Stores the time of the task from which the sleep time of the WDT is
+       calculated when it is put to sleep.
+       In case an interrupt schedules a new time, this time is compared against
+       it to check if the new time is before the WDT would wake up anyway.
+    */
+    unsigned long firstRegularlyScheduledUptimeAfterSleep;
 
     virtual void taskWdtEnable(const uint8_t value);
     virtual void taskWdtDisable();
@@ -110,6 +117,7 @@ SchedulerAvr::SchedulerAvr() {
   wdtSleepTimeMillis = 0;
   millisInDeepSleep = 0;
   millisBeforeDeepSleep = 0;
+  firstRegularlyScheduledUptimeAfterSleep = 0;
 }
 
 void SchedulerAvr::taskWdtEnable(const uint8_t value) {
