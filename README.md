@@ -33,23 +33,32 @@ DeepSleepScheduler is a lightweight, cooperative task scheduler library with con
 Simple blink:
 ```c++
 #include <DeepSleepScheduler.h>
-#define LED_PIN 13
+
+#ifdef ESP32
+#include <esp_sleep.h>
+#endif
 
 bool ledOn = true;
 
 void toggleLed() {
   if (ledOn) {
     ledOn = false;
-    digitalWrite(LED_PIN, HIGH);
+    digitalWrite(LED_BUILTIN, HIGH);
   } else {
     ledOn = true;
-    digitalWrite(LED_PIN, LOW);
+    digitalWrite(LED_BUILTIN, LOW);
   }
   scheduler.scheduleDelayed(toggleLed, 1000);
 }
 
 void setup() {
-  pinMode(LED_PIN, OUTPUT);
+#ifdef ESP32
+  // ESP_PD_DOMAIN_RTC_PERIPH needs to be kept on
+  // in order for the LED to stay on during sleep
+  esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
+#endif
+
+  pinMode(LED_BUILTIN, OUTPUT);
   scheduler.schedule(toggleLed);
 }
 
@@ -60,7 +69,10 @@ void loop() {
 Simple blink with Runnable:
 ```c++
 #include <DeepSleepScheduler.h>
-#define LED_PIN 13
+
+#ifdef ESP32
+#include <esp_sleep.h>
+#endif
 
 class BlinkRunnable: public Runnable {
   private:
@@ -84,7 +96,13 @@ class BlinkRunnable: public Runnable {
 };
 
 void setup() {
-  BlinkRunnable *blinkRunnable = new BlinkRunnable(LED_PIN, 1000);
+#ifdef ESP32
+  // ESP_PD_DOMAIN_RTC_PERIPH needs to be kept on
+  // in order for the LED to stay on during sleep
+  esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
+#endif
+
+  BlinkRunnable *blinkRunnable = new BlinkRunnable(LED_BUILTIN, 1000);
   scheduler.schedule(blinkRunnable);
 }
 
@@ -232,7 +250,7 @@ You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/
                while nothing is in the queue.
     */
     unsigned long getMillis() const;
-    
+
     /**
        Sets the runnable to be called when the task supervision detects a task that runs too long.
        The run() method will be called from the watchdog interrupt what means, that
@@ -268,19 +286,23 @@ enum TaskTimeout {
 ### Define Options ###
 - `#define LIBCALL_DEEP_SLEEP_SCHEDULER`: The header file contains definition and implementation. For that reason, it can be included once only in a project. To use it in multiple files, define `LIBCALL_DEEP_SLEEP_SCHEDULER` before all include statements except one.
 
-All following options are to be set before the include where **no** `LIBCALL_DEEP_SLEEP_SCHEDULER` is defined:
-- `#define SLEEP_MODE`: Specifies the sleep mode entered when doing deep sleep. Default is `SLEEP_MODE_PWR_DOWN`.
-- `#define DEEP_SLEEP_DELAY`: Prevent the CPU from entering SLEEP_MODE_PWR_DOWN for the specified amount of milliseconds after finishing the previous task.
+All following options are to be set before the include where **no** `LIBCALL_DEEP_SLEEP_SCHEDULER` is defined.
+
+General options:
+- `#define DEEP_SLEEP_DELAY`: Prevent the CPU from entering sleep for the specified amount of milliseconds after finishing the previous task.
 - `#define SUPERVISION_CALLBACK`: Allows to specify a callback `Runnable` to be called when a task runs too long. When
     the callback returns, the CPU is restarted after 15 ms by the watchdog. The callback method is called directly
     from the watchdog interrupt. This means that e.g. `delay()` does not work.
 - `#define SUPERVISION_CALLBACK_TIMEOUT`: Specify the timeout of the callback until the watchdog resets the CPU. Defaults to `WDTO_1S`.
 - `#define AWAKE_INDICATION_PIN`: Show on a LED if the CPU is active or in sleep mode.  
 HIGH = active, LOW = sleeping
+
+AVR specific options:
+- `#define SLEEP_MODE`: Specifies the sleep mode entered when doing deep sleep. Default is `SLEEP_MODE_PWR_DOWN`.
 - `#define SLEEP_TIME_XXX_CORRECTION`: Adjust the sleep time correction for the time when the CPU is in `SLEEP_MODE_PWR_DOWN` and waking up. See [Implementation Notes](#implementation-notes) and example [AdjustSleepTimeCorrections](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/AdjustSleepTimeCorrections/AdjustSleepTimeCorrections.ino).
 
 ## Implementation Notes ##
-- The watchdog timer is used to wake the CPU up from `SLEEP_MODE_PWR_DOWN` and for task supervision. It can therefore not be used for other means.
+- On AVR the watchdog timer is used to wake the CPU up from `SLEEP_MODE_PWR_DOWN` and for task supervision. It can therefore not be used for other means.
 - It is possible to schedule callbacks in interrupts. The run time of the `scheduleXX()` methods is relatively short but it blocks execution of other interrupts. If you have very time critical interrupts, they may still be blocked for too long.  
 - No matter how callbacks were scheduled, they are always run on the main thread. The scheduler can therefore be used as a convenient way to pass control from an interrupt to the main thread.
 - Definition and code are in the header file. It is done like this to allow the user to configure the library by using `#define`. You can still include the header file in multiple files of a project by using `#define LIBCALL_DEEP_SLEEP_SCHEDULER`. See [Define Options](#define-options).
