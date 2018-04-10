@@ -247,50 +247,22 @@ inline Scheduler::SleepMode SchedulerEsp::evaluateSleepMode() {
   interrupts();
 
   SleepMode sleepMode = NO_SLEEP;
-  if (!isWakeupByOtherInterrupt()) {
-    // not woken up during sleep
+  unsigned long maxWaitTimeMillis = 0;
+  if (firstScheduledUptimeMillis > currentSchedulerMillis) {
+    maxWaitTimeMillis = firstScheduledUptimeMillis - currentSchedulerMillis;
+  }
 
-    unsigned long maxWaitTimeMillis = 0;
-    if (firstScheduledUptimeMillis > currentSchedulerMillis) {
-      maxWaitTimeMillis = firstScheduledUptimeMillis - currentSchedulerMillis;
-    }
-
-    if (maxWaitTimeMillis == 0) {
-      sleepMode = NO_SLEEP;
-    } else if (!doesSleep() || maxWaitTimeMillis < BUFFER_TIME
+  if (maxWaitTimeMillis == 0) {
+    sleepMode = NO_SLEEP;
+  } else if (!doesSleep() || maxWaitTimeMillis < BUFFER_TIME
 #ifdef DEEP_SLEEP_DELAY
-               || millis() < lastTaskFinishedMillis + DEEP_SLEEP_DELAY
+             || millis() < lastTaskFinishedMillis + DEEP_SLEEP_DELAY
 #endif
-              ) {
-      // use IDLE for values less then BUFFER_TIME
-      sleepMode = IDLE;
-    } else {
-      sleepMode = SLEEP;
-      firstRegularlyScheduledUptimeAfterSleep = firstScheduledUptimeMillis;
-    }
+            ) {
+    // use IDLE for values less then BUFFER_TIME
+    sleepMode = IDLE;
   } else {
-    // we woke up due to an other interrupt.
-    // continue sleepting
     sleepMode = SLEEP;
-
-    // A special case is when the other interrupt scheduled a task between now and before the WDT interrupt occurs.
-    // In this case, we prevent sleeping until it is scheduled.
-    // If the WDT interrupt occurs before that, it is executed earlier as expected because getMillis() will be
-    // corrected when the WTD occurs.
-
-    if (firstScheduledUptimeMillis < firstRegularlyScheduledUptimeAfterSleep) {
-      sleepMode = IDLE;
-    } else {
-#ifdef DEEP_SLEEP_DELAY
-      // The CPU was woken up by an interrupt other than WDT.
-      // The interrupt may have scheduled a task to run immediatelly. In that case we delay deep sleep.
-      if (millis() < lastTaskFinishedMillis + DEEP_SLEEP_DELAY) {
-        sleepMode = IDLE;
-      } else {
-        sleepMode = SLEEP;
-      }
-#endif
-    }
   }
   return sleepMode;
 }
