@@ -89,6 +89,8 @@ void SchedulerEsp::taskWdtEnable(const uint8_t value) {
     //set time in us
     timerAlarmWrite(timer, durationMs * 1000, false);
     //enable interrupt
+    // only works after taskWdtDisable() if yield() is done before
+    yield();
     timerAlarmEnable(timer);
   } else {
     taskWdtDisable();
@@ -98,6 +100,7 @@ void SchedulerEsp::taskWdtEnable(const uint8_t value) {
 void SchedulerEsp::taskWdtDisable() {
   if (timer != NULL) {
     //disable interrupt
+    timerAlarmDisable(timer);
     timerDetachInterrupt(timer);
     timerEnd(timer);
     timer = NULL;
