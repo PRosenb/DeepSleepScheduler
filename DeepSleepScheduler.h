@@ -529,6 +529,7 @@ void Scheduler::execute() {
       if (current != NULL) {
         taskWdtReset();
         current->execute();
+        taskWdtReset();
 #ifdef DEEP_SLEEP_DELAY
         // use millis() instead of getMillis() because getMillis() may be manipulated by our WTD interrupt.
         lastTaskFinishedMillis = millis();
