@@ -71,7 +71,6 @@ class SchedulerAvr: public Scheduler {
       noInterrupts();
       value = millis() + millisInDeepSleep;
       interrupts();
-      // Serial.print("millisInDeepSleep: ");Serial.println(millisInDeepSleep);
       return value;
     }
   private:

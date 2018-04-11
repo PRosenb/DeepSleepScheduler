@@ -559,7 +559,7 @@ void Scheduler::execute() {
         wdtEnableInterrupt();
 #endif
       } else {
-        // tasks are not suppervised, deactivate WDT
+        // tasks are not supervised, deactivate WDT
         taskWdtDisable();
       }
     } // else the wd is still running in case of AVR
