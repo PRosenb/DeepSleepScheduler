@@ -542,7 +542,6 @@ void Scheduler::execute() {
         break;
       }
     }
-    taskWdtReset();
 
     sleepIfRequired();
 
