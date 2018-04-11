@@ -189,7 +189,6 @@ void SchedulerEsp::sleepIfRequired() {
         && millis() >= lastTaskFinishedMillis + DEEP_SLEEP_DELAY
 #endif
        ) {
-      taskWdtDisable();
       sleepMode = SLEEP;
     } else {
       sleepMode = IDLE;
@@ -200,6 +199,7 @@ void SchedulerEsp::sleepIfRequired() {
     digitalWrite(AWAKE_INDICATION_PIN, LOW);
 #endif
     if (sleepMode == SLEEP) {
+      taskWdtDisable();
       noInterrupts();
       unsigned long currentSchedulerMillis = getMillis();
 
