@@ -8,7 +8,7 @@ DeepSleepScheduler is a lightweight, cooperative task scheduler library with con
 - Configurable task supervision (using hardware watchdog on AVR)
 - Schedule in interrupt
 - Small footprint
-- Supports multiple CPUs with the same API
+- Supports multiple CPU architectures with the same API
   - AVR based Arduino boards like Arduino Uno, Mega, Nano etc.
   - ESP32
   - ESP8266 (no sleep support)
@@ -114,6 +114,7 @@ void loop() {
 ## Examples ##
 The following example sketches are included in the **DeepSleepScheduler** library.  
 You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/Main/Software) in menu File->Examples->DeepSleepScheduler.
+### General ###
 - [**Blink**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/Blink/Blink.ino): On other simple LED blink example  
 - [**BlinkRunnable**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/BlinkRunnable/BlinkRunnable.ino): A simple LED blink example using Runnable  
 - [**ScheduleRepeated**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/ScheduleRepeated/ScheduleRepeated.ino): Shows how to execute a repeated task. The library does not support it intrinsic to save memory.
@@ -123,6 +124,7 @@ You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/
 - [**SupervisionWithCallback**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/SupervisionWithCallback/SupervisionWithCallback.ino): Shows how to activate the task supervision and get a callback when a task takes too much time  
 - [**SerialWithDeepSleepDelay**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/SerialWithDeepSleepDelay/SerialWithDeepSleepDelay.ino): Shows how to use `DEEP_SLEEP_DELAY` to allow serial write to finish before entering deep sleep
 - [**PwmSleep**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/PwmSleep/PwmSleep.ino): Shows how to use analogWrite() and still use low power mode.  
+### AVR Specific ###
 - [**AdjustSleepTimeCorrections**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/AdjustSleepTimeCorrections/AdjustSleepTimeCorrections.ino): Shows how to adjust the sleep time corrections to your specific CPU
 
 ## Reference ##
@@ -191,7 +193,6 @@ You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/
        @param callback: callback to check
     */
     bool isScheduled(void (*callback)()) const;
-
     /**
        Check if this runnable is scheduled at least once already.
        This method can be called in an interrupt but bear in mind, that it loops through
@@ -288,7 +289,7 @@ enum TaskTimeout {
 
 All following options are to be set before the include where **no** `LIBCALL_DEEP_SLEEP_SCHEDULER` is defined.
 
-General options:
+#### General options ####
 - `#define DEEP_SLEEP_DELAY`: Prevent the CPU from entering sleep for the specified amount of milliseconds after finishing the previous task.
 - `#define SUPERVISION_CALLBACK`: Allows to specify a callback `Runnable` to be called when a task runs too long. When
     the callback returns, the CPU is restarted after 15 ms by the watchdog. The callback method is called directly
@@ -297,19 +298,28 @@ General options:
 - `#define AWAKE_INDICATION_PIN`: Show on a LED if the CPU is active or in sleep mode.  
 HIGH = active, LOW = sleeping
 
-AVR specific options:
+#### AVR specific options ####
 - `#define SLEEP_MODE`: Specifies the sleep mode entered when doing deep sleep. Default is `SLEEP_MODE_PWR_DOWN`.
 - `#define SLEEP_TIME_XXX_CORRECTION`: Adjust the sleep time correction for the time when the CPU is in `SLEEP_MODE_PWR_DOWN` and waking up. See [Implementation Notes](#implementation-notes) and example [AdjustSleepTimeCorrections](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/AdjustSleepTimeCorrections/AdjustSleepTimeCorrections.ino).
 
+#### ESP32 specific options ###
+- `#ESP32_TASK_WDT_TIMER_NUMBER`: Specifies the timer number to be used for task supervision. Default is 3.
+
 ## Implementation Notes ##
-- On AVR the watchdog timer is used to wake the CPU up from `SLEEP_MODE_PWR_DOWN` and for task supervision. It can therefore not be used for other means.
-- It is possible to schedule callbacks in interrupts. The run time of the `scheduleXX()` methods is relatively short but it blocks execution of other interrupts. If you have very time critical interrupts, they may still be blocked for too long.  
-- No matter how callbacks were scheduled, they are always run on the main thread. The scheduler can therefore be used as a convenient way to pass control from an interrupt to the main thread.
+### General ###
 - Definition and code are in the header file. It is done like this to allow the user to configure the library by using `#define`. You can still include the header file in multiple files of a project by using `#define LIBCALL_DEEP_SLEEP_SCHEDULER`. See [Define Options](#define-options).
+- It is possible to schedule callbacks in interrupts. The run time of the `scheduleXX()` methods is relatively short but it blocks execution of other interrupts. If you have very time critical interrupts, they may still be blocked for too long.  
+- No matter how callbacks were scheduled, they are always run on the thread that runs the scheduler.execute() function. The scheduler can therefore be used as a convenient way to pass control from an interrupt to a regular thread.
+
+### AVR ###
+- On AVR the watchdog timer is used to wake the CPU up from `SLEEP_MODE_PWR_DOWN` and for task supervision. It can therefore not be used for other means.
 - When the CPU enters `SLEEP_MODE_PWR_DOWN`, the watchdog timer is used to wake it up again. The accuracy of the watchdog timer is not very well though. Further, the wake up time depends on the CPU type you are using. If you have certain time constraints, it may happen, that the schedule times are not precise enough.  
 One possibility is to adapt the sleep time corrections by setting the defines `SLEEP_TIME_XXX_CORRECTION` (see [Define Options](#define-options) and example [AdjustSleepTimeCorrections](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/AdjustSleepTimeCorrections/AdjustSleepTimeCorrections.ino)).  
 An other option is to disable deep sleep (`SLEEP_MODE_PWR_DOWN`) while scheduling with tight time constraints. To do so, use the methods `acquireNoSleepLock()` and `releaseNoSleepLock()` (see [Methods](#methods)). Please report values back to me if you do time measuring, thanks.
 - While the CPU is in `SLEEP_MODE_PWR_DOWN`, the millis timer is not running. For this reason the current uptime is not known when an external interrupt occurs during this time. Instead of the current uptime, the uptime when the CPU started to sleep is taken when calculating the schedule time of a delayed task. This  means that these tasks are potentially scheduled too early because the uptime is corrected when the sleep time is finished.
+
+### ESP32 ###
+- At time of writing, the ESP32 implementation available in the Arduino IDE does not allow access to the hardware watchdog of ESP32. To still allow supervision of the tasks, DeepSleepScheduler employs timer 3 to measure the time and restart the CPU if a task runs too long. See [Define Options](#define-options) on how to change the timer.
 
 ## Contributions ##
 Enhancements and improvements are welcome.
@@ -317,7 +327,7 @@ Enhancements and improvements are welcome.
 ## License ##
 ```
 Arduino DeepSleepScheduler Library
-Copyright (c) 2016 Peter Rosenberg (https://github.com/PRosenb).
+Copyright (c) 2018 Peter Rosenberg (https://github.com/PRosenb).
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
