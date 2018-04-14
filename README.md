@@ -126,6 +126,8 @@ You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/
 - [**PwmSleep**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/PwmSleep/PwmSleep.ino): Shows how to use analogWrite() and still use low power mode.  
 ### AVR Specific ###
 - [**AdjustSleepTimeCorrections**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/AdjustSleepTimeCorrections/AdjustSleepTimeCorrections.ino): Shows how to adjust the sleep time corrections to your specific CPU
+### ESP32 Specific ###
+- [**SchedulerWithOtherTaskPriority**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/SchedulerWithOtherTaskPriority/SchedulerWithOtherTaskPriority.ino): Shows how to set an other FreeRTOS task priority for tasks scheduled by DeepSleepScheduler
 
 ## Reference ##
 ### Methods ###
@@ -320,6 +322,7 @@ An other option is to disable deep sleep (`SLEEP_MODE_PWR_DOWN`) while schedulin
 
 ### ESP32 ###
 - At time of writing, the ESP32 implementation available in the Arduino IDE does not allow access to the hardware watchdog of ESP32. To still allow supervision of the tasks, DeepSleepScheduler employs timer 3 to measure the time and restart the CPU if a task runs too long. See [Define Options](#define-options) on how to change the timer.
+- On ESP32 FreeRTOS is used. It allows to run multiple threads in parallel and manages their switching and prioritisation. DeepSleepScheduler (that also runs on memory constrained CPUs) is a cooperative task scheduler that runs all tasks on the thread that calls scheduler.execute(). The advantage of that is, that there is no need to synchronize the tasks against each other. On the other hand, they do not run in parallel. To change the FreeRTOS priority of all tasks run by DeepSleepScheduler, set it before scheduler.execute() is called. See [SchedulerWithOtherTaskPriority](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/SchedulerWithOtherTaskPriority/SchedulerWithOtherTaskPriority.ino) for details.
 
 ## Contributions ##
 Enhancements and improvements are welcome.
