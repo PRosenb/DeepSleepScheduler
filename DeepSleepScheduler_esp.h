@@ -5,6 +5,10 @@
 #include <soc/rtc.h>
 #endif
 
+#ifndef ESP32_TASK_WDT_TIMER_NUMBER
+#define ESP32_TASK_WDT_TIMER_NUMBER 3
+#endif
+
 // -------------------------------------------------------------------------------------------------
 // Definition (usually in H file)
 // -------------------------------------------------------------------------------------------------
@@ -82,14 +86,14 @@ void SchedulerEsp::taskWdtEnable(const uint8_t value) {
   if (value != NO_SUPERVISION) {
     const unsigned long durationMs = wdtTimeoutToDurationMs(value);
     if (timer == NULL) {
-      //timer 0, div 80
-      timer = timerBegin(0, 80, true);
+      // div 80
+      timer = timerBegin(ESP32_TASK_WDT_TIMER_NUMBER, 80, true);
       timerAttachInterrupt(timer, &isrWatchdogExpired, true);
     }
     //set time in us
     timerAlarmWrite(timer, durationMs * 1000, false);
     //enable interrupt
-    // only works after taskWdtDisable() if yield() is done before
+    //only works after taskWdtDisable() if yield() is done before
     yield();
     timerAlarmEnable(timer);
   } else {
