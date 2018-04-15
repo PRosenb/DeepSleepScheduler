@@ -122,7 +122,7 @@ You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/
 - [**ShowSleep**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/ShowSleep/ShowSleep.ino): Shows with the LED, when the CPU is in sleep or awake  
 - [**Supervision**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/Supervision/Supervision.ino): Shows how to activate the task supervision in order to restart the CPU when a task takes too much time  
 - [**SupervisionWithCallback**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/SupervisionWithCallback/SupervisionWithCallback.ino): Shows how to activate the task supervision and get a callback when a task takes too much time  
-- [**SerialWithDeepSleepDelay**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/SerialWithDeepSleepDelay/SerialWithDeepSleepDelay.ino): Shows how to use `DEEP_SLEEP_DELAY` to allow serial write to finish before entering deep sleep
+- [**SerialWithDeepSleepDelay**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/SerialWithDeepSleepDelay/SerialWithDeepSleepDelay.ino): Shows how to use `SLEEP_DELAY` to allow serial write to finish before entering sleep
 - [**PwmSleep**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/PwmSleep/PwmSleep.ino): Shows how to use analogWrite() and still use low power mode.  
 ### AVR Specific ###
 - [**AdjustSleepTimeCorrections**](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/AdjustSleepTimeCorrections/AdjustSleepTimeCorrections.ino): Shows how to adjust the sleep time corrections to your specific CPU
@@ -221,7 +221,7 @@ You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/
     void removeCallbacks(Runnable *runnable);
 
     /**
-       Acquire a lock to prevent the CPU from entering deep sleep.
+       Acquire a lock to prevent the CPU from entering sleep.
        acquireNoSleepLock() supports up to 255 locks.
        You need to call releaseNoSleepLock() the same amount of times
        as removeCallbacks() to allow the CPU to enter sleep again.
@@ -249,7 +249,7 @@ You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/
 
     /**
        return: The milliseconds since startup of the device where the sleep time was added.
-               This value does not consider the time when the CPU is in infinite deep sleep
+               This value does not consider the time when the CPU is in infinite sleep
                while nothing is in the queue.
     */
     unsigned long getMillis() const;
@@ -292,7 +292,7 @@ enum TaskTimeout {
 All following options are to be set before the include where **no** `LIBCALL_DEEP_SLEEP_SCHEDULER` is defined.
 
 #### General options ####
-- `#define DEEP_SLEEP_DELAY`: Prevent the CPU from entering sleep for the specified amount of milliseconds after finishing the previous task.
+- `#define SLEEP_DELAY`: Prevent the CPU from entering sleep for the specified amount of milliseconds after finishing the previous task.
 - `#define SUPERVISION_CALLBACK`: Allows to specify a callback `Runnable` to be called when a task runs too long. When
     the callback returns, the CPU is restarted after 15 ms by the watchdog. The callback method is called directly
     from the watchdog interrupt. This means that e.g. `delay()` does not work.
@@ -320,7 +320,7 @@ HIGH = active, LOW = sleeping
 - On AVR the watchdog timer is used to wake the CPU up from `SLEEP_MODE_PWR_DOWN` and for task supervision. It can therefore not be used for other means.
 - When the CPU enters `SLEEP_MODE_PWR_DOWN`, the watchdog timer is used to wake it up again. The accuracy of the watchdog timer is not very well though. Further, the wake up time depends on the CPU type you are using. If you have certain time constraints, it may happen, that the schedule times are not precise enough.  
 One possibility is to adapt the sleep time corrections by setting the defines `SLEEP_TIME_XXX_CORRECTION` (see [Define Options](#define-options) and example [AdjustSleepTimeCorrections](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/AdjustSleepTimeCorrections/AdjustSleepTimeCorrections.ino)).  
-An other option is to disable deep sleep (`SLEEP_MODE_PWR_DOWN`) while scheduling with tight time constraints. To do so, use the methods `acquireNoSleepLock()` and `releaseNoSleepLock()` (see [Methods](#methods)). Please report values back to me if you do time measuring, thanks.
+An other option is to disable sleep (`SLEEP_MODE_PWR_DOWN`) while scheduling with tight time constraints. To do so, use the methods `acquireNoSleepLock()` and `releaseNoSleepLock()` (see [Methods](#methods)). Please report values back to me if you do time measuring, thanks.
 - While the CPU is in `SLEEP_MODE_PWR_DOWN`, the millis timer is not running. For this reason the current uptime is not known when an external interrupt occurs during this time. Instead of the current uptime, the uptime when the CPU started to sleep is taken when calculating the schedule time of a delayed task. This  means that these tasks are potentially scheduled too early because the uptime is corrected when the sleep time is finished.
 
 ### ESP32 ###

@@ -153,8 +153,8 @@ void SchedulerAvr::sleepIfRequired() {
   } else {
     // nothing in the queue
     if (doesSleep()
-#ifdef DEEP_SLEEP_DELAY
-        && millis() >= lastTaskFinishedMillis + DEEP_SLEEP_DELAY
+#ifdef SLEEP_DELAY
+        && millis() >= lastTaskFinishedMillis + SLEEP_DELAY
 #endif
        ) {
       taskWdtDisable();
@@ -218,8 +218,8 @@ inline Scheduler::SleepMode SchedulerAvr::evaluateSleepModeAndEnableWdtIfRequire
     if (maxWaitTimeMillis == 0) {
       sleepMode = NO_SLEEP;
     } else if (!doesSleep() || maxWaitTimeMillis < SLEEP_TIME_1S + BUFFER_TIME
-#ifdef DEEP_SLEEP_DELAY
-               || millis() < lastTaskFinishedMillis + DEEP_SLEEP_DELAY
+#ifdef SLEEP_DELAY
+               || millis() < lastTaskFinishedMillis + SLEEP_DELAY
 #endif
               ) {
       // use SLEEP_MODE_IDLE for values less then SLEEP_TIME_1S
@@ -249,10 +249,10 @@ inline Scheduler::SleepMode SchedulerAvr::evaluateSleepModeAndEnableWdtIfRequire
     if (firstScheduledUptimeMillis < firstRegularlyScheduledUptimeAfterSleep) {
       sleepMode = IDLE;
     } else {
-#ifdef DEEP_SLEEP_DELAY
+#ifdef SLEEP_DELAY
       // The CPU was woken up by an interrupt other than WDT.
       // The interrupt may have scheduled a task to run immediatelly. In that case we delay deep sleep.
-      if (millis() < lastTaskFinishedMillis + DEEP_SLEEP_DELAY) {
+      if (millis() < lastTaskFinishedMillis + SLEEP_DELAY) {
         sleepMode = IDLE;
       } else {
         sleepMode = SLEEP;

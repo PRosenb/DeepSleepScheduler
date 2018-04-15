@@ -22,7 +22,7 @@
     To use it in multiple files, define LIBCALL_DEEP_SLEEP_SCHEDULER before all include statements except one.
   All following options are to be set before the include where no LIBCALL_DEEP_SLEEP_SCHEDULER is defined.
   - #define SLEEP_MODE: Specifies the sleep mode entered when doing deep sleep. Default is SLEEP_MODE_PWR_DOWN.
-  - #define DEEP_SLEEP_DELAY: Prevent the CPU from entering SLEEP_MODE_PWR_DOWN for the specified amount of milli seconds after finishing the previous task.
+  - #define SLEEP_DELAY: Prevent the CPU from entering sleep for the specified amount of milli seconds after finishing the previous task.
   - #define SUPERVISION_CALLBACK: Allows to specify a callback Runnable to be called when a task runs too long. When
     the callback returns, the CPU is restarted after 15 ms by the watchdog. The callback method is called directly
     from the watchdog interrupt. This means that e.g. delay() does not work.
@@ -288,7 +288,7 @@ class Scheduler {
        the task currently running or null if none running
     */
     Task *current;
-#ifdef DEEP_SLEEP_DELAY
+#ifdef SLEEP_DELAY
     /**
        The time in millis since start up when the last task finished.
        Used to delay deep sleep.
@@ -530,7 +530,7 @@ void Scheduler::execute() {
         taskWdtReset();
         current->execute();
         taskWdtReset();
-#ifdef DEEP_SLEEP_DELAY
+#ifdef SLEEP_DELAY
         // use millis() instead of getMillis() because getMillis() may be manipulated by our WTD interrupt.
         lastTaskFinishedMillis = millis();
 #endif
