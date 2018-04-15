@@ -307,6 +307,9 @@ HIGH = active, LOW = sleeping
 #### ESP32 specific options ###
 - `#ESP32_TASK_WDT_TIMER_NUMBER`: Specifies the timer number to be used for task supervision. Default is 3.
 
+#### ESP8266 specific options ####
+- `ESP8266_MAX_DELAY_TIME_MS`: The maximum time in milliseconds the CPU will be delayed while no task is scheduled. Default is infinite. Set this value if you expect interrupts while no task is running.
+
 ## Implementation Notes ##
 ### General ###
 - Definition and code are in the header file. It is done like this to allow the user to configure the library by using `#define`. You can still include the header file in multiple files of a project by using `#define LIBCALL_DEEP_SLEEP_SCHEDULER`. See [Define Options](#define-options).

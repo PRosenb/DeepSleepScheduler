@@ -3,6 +3,8 @@
 #include <esp_sleep.h>
 #include <esp32-hal-timer.h>
 #include <soc/rtc.h>
+#elif ESP8266
+#include <limits.h>
 #endif
 
 #ifndef ESP32_TASK_WDT_TIMER_NUMBER
@@ -293,6 +295,12 @@ void SchedulerEsp::sleep(unsigned long durationMs, bool queueEmpty) {
 #ifdef ESP_DEEP_SLEEP_FOR_INFINITE_SLEEP
   if (queueEmpty) {
     ESP.deepSleep(0); // does not return
+  }
+#endif
+
+#ifdef ESP8266_MAX_DELAY_TIME_MS
+  if (durationMs > ESP8266_MAX_DELAY_TIME_MS) {
+    durationMs = ESP8266_MAX_DELAY_TIME_MS;
   }
 #endif
   delay(durationMs);
