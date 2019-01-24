@@ -74,7 +74,7 @@ void SchedulerEsp::isrWatchdogExpiredStatic() {
 #endif
 
   Serial.println(F("watchdog reboot"));
-  esp_restart_noos();
+  esp_restart();
 }
 
 /**
