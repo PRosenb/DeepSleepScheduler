@@ -153,6 +153,23 @@ You can also see them in the [Arduino Software (IDE)](https://www.arduino.cc/en/
     void schedule(Runnable *runnable);
 
     /**
+      Schedule the callback method as soon as possible and remove all other
+      tasks with the same callback. This is useful if you call it
+      from an interrupt and want one execution only even if the interrupt triggers
+      multiple times.
+       @param callback: the method to be called on the main thread
+    */
+    void scheduleOnce(void (*callback)());
+    /**
+      Schedule the Runnable as soon as possible and remove all other
+      tasks with the same Runnable. This is useful if you call it
+      from an interrupt and want one execution only even if the interrupt triggers
+      multiple times.
+      @param runnable: the Runnable on which the run() method will be called on the main thread
+    */
+    void scheduleOnce(Runnable *runnable);
+
+    /**
        Schedule the callback after delayMillis milliseconds.
        @param callback: the method to be called on the main thread
        @param delayMillis: the time to wait in milliseconds until the callback shall be made

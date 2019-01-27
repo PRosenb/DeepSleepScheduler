@@ -82,6 +82,23 @@ class Scheduler {
     void schedule(Runnable *runnable);
 
     /**
+      Schedule the callback method as soon as possible and remove all other
+      tasks with the same callback. This is useful if you call it
+      from an interrupt and want one execution only even if the interrupt triggers
+      multiple times.
+       @param callback: the method to be called on the main thread
+    */
+    void scheduleOnce(void (*callback)());
+    /**
+      Schedule the Runnable as soon as possible and remove all other
+      tasks with the same Runnable. This is useful if you call it
+      from an interrupt and want one execution only even if the interrupt triggers
+      multiple times.
+      @param runnable: the Runnable on which the run() method will be called on the main thread
+    */
+    void scheduleOnce(Runnable *runnable);
+
+    /**
        Schedule the callback after delayMillis milliseconds.
        @param callback: the method to be called on the main thread
        @param delayMillis: the time to wait in milliseconds until the callback shall be made
@@ -271,6 +288,8 @@ class Scheduler {
     byte noSleepLocksCount;
 
     void insertTask(Task *task);
+    void insertTaskAndRemoveExisting(Task *newTask);
+    void deleteTask(Task *taskToDelete, Task *previousTask);
 
   protected:
     enum SleepMode {
@@ -344,6 +363,16 @@ void Scheduler::schedule(void (*callback)()) {
 void Scheduler::schedule(Runnable *runnable) {
   Task *newTask = new RunnableTask(runnable, getMillis());
   insertTask(newTask);
+}
+
+void Scheduler::scheduleOnce(void (*callback)()) {
+  Task *newTask = new CallbackTask(callback, getMillis());
+  insertTaskAndRemoveExisting(newTask);
+}
+
+void Scheduler::scheduleOnce(Runnable *runnable) {
+  Task *newTask = new RunnableTask(runnable, getMillis());
+  insertTaskAndRemoveExisting(newTask);
 }
 
 void Scheduler::scheduleDelayed(void (*callback)(), unsigned long delayMillis) {
@@ -513,6 +542,64 @@ void Scheduler::insertTask(Task *newTask) {
     }
   }
   interrupts();
+}
+
+// Inserts a new task in the ordered lists of tasks and remove all existing tasks with the same callback
+void Scheduler::insertTaskAndRemoveExisting(Task *newTask) {
+  noInterrupts();
+
+  // remove first if it has the same callback as we insert
+  while (first != NULL && first->equalCallback(newTask)) {
+    deleteTask(first, NULL);
+  }
+  // here first is not equal to the one we insert
+
+  if (first == NULL) {
+    first = newTask;
+  } else {
+    if (first->scheduledUptimeMillis > newTask->scheduledUptimeMillis) {
+      // insert before first
+      newTask->next = first;
+      first = newTask;
+    } else {
+      Task *previousTask = first;
+      while (previousTask->next != NULL
+             && previousTask->next->scheduledUptimeMillis <= newTask->scheduledUptimeMillis) {
+        if (previousTask->next->equalCallback(newTask)) {
+          deleteTask(previousTask->next, previousTask);
+          // previousTask->next was deleted so we keep previousTask
+          // and will check the next previousTask->next on next loop
+        } else {
+          previousTask = previousTask->next;
+        }
+      }
+      // insert after previousTask
+      newTask->next = previousTask->next;
+      previousTask->next = newTask;
+    }
+
+    // delete all existing tasks after the insert one
+    Task *previousTask = newTask;
+    while (previousTask->next != NULL) {
+      if (previousTask->next->equalCallback(newTask)) {
+        deleteTask(previousTask->next, previousTask);
+      } else {
+        previousTask = previousTask->next;
+      }
+    }
+  }
+
+  interrupts();
+}
+
+void Scheduler::deleteTask(Task *taskToDelete, Task *previousTask) {
+  if (previousTask == NULL) {
+    // remove the first task
+    first = taskToDelete->next;
+  } else {
+    previousTask->next = taskToDelete->next;
+  }
+  delete taskToDelete;
 }
 
 void Scheduler::execute() {

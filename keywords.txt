@@ -16,6 +16,7 @@ TaskTimeout	KEYWORD1
 
 run	KEYWORD2
 schedule	KEYWORD2
+scheduleOnce	KEYWORD2
 scheduleDelayed	KEYWORD2
 scheduleAt	KEYWORD2
 scheduleAtFrontOfQueue	KEYWORD2
