@@ -502,14 +502,14 @@ void Scheduler::insertTask(Task *newTask) {
       newTask->next = first;
       first = newTask;
     } else {
-      Task *currentTask = first;
-      while (currentTask->next != NULL
-             && currentTask->next->scheduledUptimeMillis <= newTask->scheduledUptimeMillis) {
-        currentTask = currentTask->next;
+      Task *previousTask = first;
+      while (previousTask->next != NULL
+             && previousTask->next->scheduledUptimeMillis <= newTask->scheduledUptimeMillis) {
+        previousTask = previousTask->next;
       }
-      // insert after currentTask
-      newTask->next = currentTask->next;
-      currentTask->next = newTask;
+      // insert after previousTask
+      newTask->next = previousTask->next;
+      previousTask->next = newTask;
     }
   }
   interrupts();
