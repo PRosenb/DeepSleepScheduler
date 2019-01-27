@@ -228,6 +228,7 @@ class Scheduler {
         // dynamic_cast is not supported by default as it compiles with -fno-rtti
         // Therefore, we use this method to detect which Task type it is.
         virtual bool isCallbackTask() = 0;
+        virtual bool equalCallback(Task *task) = 0;
         const unsigned long scheduledUptimeMillis;
         Task *next;
     };
@@ -242,6 +243,9 @@ class Scheduler {
         virtual bool isCallbackTask() {
           return true;
         }
+        virtual bool equalCallback(Task *task) {
+          return task->isCallbackTask() && ((CallbackTask*)task)->callback == callback;
+        }
         void (* const callback)();
     };
     class RunnableTask: public Task {
@@ -254,6 +258,9 @@ class Scheduler {
         }
         virtual bool isCallbackTask() {
           return false;
+        }
+        virtual bool equalCallback(Task *task) {
+          return !task->isCallbackTask() && ((RunnableTask*)task)->runnable == runnable;
         }
         Runnable * const runnable;
     };
