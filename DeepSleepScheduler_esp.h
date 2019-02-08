@@ -180,6 +180,10 @@ inline unsigned long SchedulerEsp::wdtTimeoutToDurationMs(const uint8_t value) {
         durationMs = 8000;
         break;
       }
+    default: {
+        // should not happen
+        durationMs = 15;
+      }
   }
   return durationMs;
 }
