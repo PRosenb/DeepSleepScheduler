@@ -1,3 +1,4 @@
+#define SLEEP_DELAY 100
 #include <DeepSleepScheduler.h>
 
 void setup() {
