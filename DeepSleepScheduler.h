@@ -62,7 +62,7 @@ enum TaskTimeout {
 };
 
 /**
-   Extend from Runnable in order to have the run() method run by the scheduler.
+  Extend from Runnable in order to have the run() method run by the scheduler.
 */
 class Runnable {
   public:
@@ -72,9 +72,9 @@ class Runnable {
 class Scheduler {
   public:
     /**
-       Schedule the callback method as soon as possible but after other tasks
-       that are to be scheduled immediately and are in the queue already.
-       @param callback: the method to be called on the main thread
+      Schedule the callback method as soon as possible but after other tasks
+      that are to be scheduled immediately and are in the queue already.
+      @param callback: the method to be called on the main thread
     */
     void schedule(void (*callback)());
     /**
@@ -89,7 +89,7 @@ class Scheduler {
       tasks with the same callback. This is useful if you call it
       from an interrupt and want one execution only even if the interrupt triggers
       multiple times.
-       @param callback: the method to be called on the main thread
+      @param callback: the method to be called on the main thread
     */
     void scheduleOnce(void (*callback)());
     /**
@@ -102,9 +102,9 @@ class Scheduler {
     void scheduleOnce(Runnable *runnable);
 
     /**
-       Schedule the callback after delayMillis milliseconds.
-       @param callback: the method to be called on the main thread
-       @param delayMillis: the time to wait in milliseconds until the callback shall be made
+      Schedule the callback after delayMillis milliseconds.
+      @param callback: the method to be called on the main thread
+      @param delayMillis: the time to wait in milliseconds until the callback shall be made
     */
     void scheduleDelayed(void (*callback)(), unsigned long delayMillis);
     /**
@@ -115,99 +115,99 @@ class Scheduler {
     void scheduleDelayed(Runnable *runnable, unsigned long delayMillis);
 
     /**
-       Schedule the callback uptimeMillis milliseconds after the device was started.
-       Please be aware that uptimeMillis is stopped when no task is pending. In this case,
-       the CPU may only wake up on an external interrupt.
-       @param callback: the method to be called on the main thread
-       @param uptimeMillis: the time in milliseconds since the device was started
-                            to schedule the callback.
+      Schedule the callback uptimeMillis milliseconds after the device was started.
+      Please be aware that uptimeMillis is stopped when no task is pending. In this case,
+      the CPU may only wake up on an external interrupt.
+      @param callback: the method to be called on the main thread
+      @param uptimeMillis: the time in milliseconds since the device was started
+                           to schedule the callback.
     */
     void scheduleAt(void (*callback)(), unsigned long uptimeMillis);
     /**
-       Schedule the callback uptimeMillis milliseconds after the device was started.
-       Please be aware that uptimeMillis is stopped when no task is pending. In this case,
-       the CPU may only wake up on an external interrupt.
-       @param runnable: the Runnable on which the run() method will be called on the main thread
-       @param uptimeMillis: the time in milliseconds since the device was started
-                            to schedule the callback.
+      Schedule the callback uptimeMillis milliseconds after the device was started.
+      Please be aware that uptimeMillis is stopped when no task is pending. In this case,
+      the CPU may only wake up on an external interrupt.
+      @param runnable: the Runnable on which the run() method will be called on the main thread
+      @param uptimeMillis: the time in milliseconds since the device was started
+                           to schedule the callback.
     */
     void scheduleAt(Runnable *runnable, unsigned long uptimeMillis);
 
     /**
-       Schedule the callback method as next task even if other tasks are in the queue already.
-       @param callback: the method to be called on the main thread
+      Schedule the callback method as next task even if other tasks are in the queue already.
+      @param callback: the method to be called on the main thread
     */
     void scheduleAtFrontOfQueue(void (*callback)());
     /**
-       Schedule the callback method as next task even if other tasks are in the queue already.
-       @param runnable: the Runnable on which the run() method will be called on the main thread
+      Schedule the callback method as next task even if other tasks are in the queue already.
+      @param runnable: the Runnable on which the run() method will be called on the main thread
     */
     void scheduleAtFrontOfQueue(Runnable *runnable);
 
     /**
-       Check if this callback is scheduled at least once already.
-       This method can be called in an interrupt but bear in mind, that it loops through
-       the run queue until it finds it or reaches the end.
-       @param callback: callback to check
+      Check if this callback is scheduled at least once already.
+      This method can be called in an interrupt but bear in mind, that it loops through
+      the run queue until it finds it or reaches the end.
+      @param callback: callback to check
     */
     bool isScheduled(void (*callback)()) const;
 
     /**
-       Check if this runnable is scheduled at least once already.
-       This method can be called in an interrupt but bear in mind, that it loops through
-       the run queue until it finds it or reaches the end.
+      Check if this runnable is scheduled at least once already.
+      This method can be called in an interrupt but bear in mind, that it loops through
+      the run queue until it finds it or reaches the end.
       @param runnable: Runnable to check
     */
     bool isScheduled(Runnable *runnable) const;
 
     /**
-       Returns the scheduled time of the task that is currently running.
-       If no task is currently running, 0 is returned.
+      Returns the scheduled time of the task that is currently running.
+      If no task is currently running, 0 is returned.
     */
     unsigned long getScheduleTimeOfCurrentTask() const;
 
     /**
-       Cancel all schedules that were scheduled for this callback.
-       @param callback: method of which all schedules shall be removed
+      Cancel all schedules that were scheduled for this callback.
+      @param callback: method of which all schedules shall be removed
     */
     void removeCallbacks(void (*callback)());
     /**
-       Cancel all schedules that were scheduled for this runnable.
-       @param runnable: instance of Runnable of which all schedules shall be removed
+      Cancel all schedules that were scheduled for this runnable.
+      @param runnable: instance of Runnable of which all schedules shall be removed
     */
     void removeCallbacks(Runnable *runnable);
 
     /**
-       Acquire a lock to prevent the CPU from entering sleep.
-       acquireNoSleepLock() supports up to 255 locks.
-       You need to call releaseNoSleepLock() the same amount of times
-       to allow the CPU to enter sleep again.
+      Acquire a lock to prevent the CPU from entering sleep.
+      acquireNoSleepLock() supports up to 255 locks.
+      You need to call releaseNoSleepLock() the same amount of times
+      to allow the CPU to enter sleep again.
     */
     void acquireNoSleepLock();
 
     /**
-       Release the lock acquired by acquireNoSleepLock(). Please make sure you
-       call releaseNoSleepLock() the same amount of times as acquireNoSleepLock(),
-       otherwise the CPU is not allowed to enter sleep.
+      Release the lock acquired by acquireNoSleepLock(). Please make sure you
+      call releaseNoSleepLock() the same amount of times as acquireNoSleepLock(),
+      otherwise the CPU is not allowed to enter sleep.
     */
     void releaseNoSleepLock();
 
     /**
-       return: true if the CPU is currently allowed to enter sleep, false otherwise.
+      return: true if the CPU is currently allowed to enter sleep, false otherwise.
     */
     bool doesSleep() const;
 
     /**
-       Configure the supervision of future tasks. Can be deactivated with NO_SUPERVISION.
-       Default: TIMEOUT_8S
-       @param taskTimeout: The task timeout to be used
+      Configure the supervision of future tasks. Can be deactivated with NO_SUPERVISION.
+      Default: TIMEOUT_8S
+      @param taskTimeout: The task timeout to be used
     */
     void setTaskTimeout(TaskTimeout taskTimeout);
 
     /**
-       return: The milliseconds since startup of the device where the sleep time was added.
-               This value does not consider the time when the CPU is in infinite deep sleep
-               while nothing is in the queue.
+      return: The milliseconds since startup of the device where the sleep time was added.
+              This value does not consider the time when the CPU is in infinite deep sleep
+              while nothing is in the queue.
     */
     unsigned long getMillis() const;
 
@@ -216,11 +216,11 @@ class Scheduler {
 #error "SUPERVISION_CALLBACK not supported for ESP8266"
 #endif
     /**
-       Sets the runnable to be called when the task supervision detects a task that runs too long.
-       The run() method will be called from the watchdog interrupt what means, that
-       e.g. the method delay() does not work. When run() returns, the CPU will be restarted after 15ms.
-       See description of SUPERVISION_CALLBACK and SUPERVISION_CALLBACK_TIMEOUT.
-       @param runnable: instance of Runnable where the run() method is called
+      Sets the runnable to be called when the task supervision detects a task that runs too long.
+      The run() method will be called from the watchdog interrupt what means, that
+      e.g. the method delay() does not work. When run() returns, the CPU will be restarted after 15ms.
+      See description of SUPERVISION_CALLBACK and SUPERVISION_CALLBACK_TIMEOUT.
+      @param runnable: instance of Runnable where the run() method is called
     */
     void setSupervisionCallback(Runnable *runnable) {
       supervisionCallbackRunnable = runnable;
@@ -228,12 +228,12 @@ class Scheduler {
 #endif
 
     /**
-       This method needs to be called from your loop() method and does not return.
+      This method needs to be called from your loop() method and does not return.
     */
     void execute();
 
     /**
-       Constructor of the scheduler. Do not all this method as there is only one instance of Scheduler supported.
+      Constructor of the scheduler. Do not all this method as there is only one instance of Scheduler supported.
     */
     Scheduler();
 
@@ -306,21 +306,21 @@ class Scheduler {
 #endif
 
     /**
-       currently set task timeout
+      currently set task timeout
     */
     TaskTimeout taskTimeout;
     /**
-       first element in the run queue
+      first element in the run queue
     */
     Task *first;
     /*
-       the task currently running or null if none running
+      the task currently running or null if none running
     */
     Task *current;
 #ifdef SLEEP_DELAY
     /**
-       The time in millis since start up when the last task finished.
-       Used to delay deep sleep.
+      The time in millis since start up when the last task finished.
+      Used to delay deep sleep.
     */
     unsigned long lastTaskFinishedMillis;
 #endif
