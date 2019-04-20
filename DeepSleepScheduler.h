@@ -333,6 +333,10 @@ class Scheduler {
 
     // default does nothing, only used for AVR
     virtual void wdtEnableInterrupt() {}
+
+    inline void setupTaskTimeoutIfConfigured();
+    inline bool executeNextIfTime();
+    inline void reactivateTaskTimeoutIfRequired();
 };
 
 #ifndef LIBCALL_DEEP_SLEEP_SCHEDULER
@@ -602,7 +606,7 @@ void Scheduler::deleteTask(Task *taskToDelete, Task *previousTask) {
   delete taskToDelete;
 }
 
-void Scheduler::execute() {
+void Scheduler::setupTaskTimeoutIfConfigured() {
   noInterrupts();
   if (taskTimeout != NO_SUPERVISION) {
     taskWdtEnable(taskTimeout);
@@ -611,52 +615,65 @@ void Scheduler::execute() {
 #endif
   }
   interrupts();
-  while (true) {
-    while (true) {
-      noInterrupts();
-      if (first != NULL && first->scheduledUptimeMillis <= getMillis()) {
-        current = first;
-        first = current->next;
-      }
-      interrupts();
+}
 
-      if (current != NULL) {
-        taskWdtReset();
-        current->execute();
-        taskWdtReset();
+bool Scheduler::executeNextIfTime() {
+  noInterrupts();
+  if (first != NULL && first->scheduledUptimeMillis <= getMillis()) {
+    current = first;
+    first = current->next;
+  }
+  interrupts();
+
+  if (current != NULL) {
+    taskWdtReset();
+    current->execute();
+    taskWdtReset();
 #ifdef SLEEP_DELAY
-        // use millis() instead of getMillis() because getMillis() may be manipulated by our WTD interrupt.
-        lastTaskFinishedMillis = millis();
+    // use millis() instead of getMillis() because getMillis() may be manipulated by our WTD interrupt.
+    lastTaskFinishedMillis = millis();
 #endif
-        delete current;
-        noInterrupts();
-        current = NULL;
-        interrupts();
-      } else {
-        break;
-      }
+    delete current;
+    noInterrupts();
+    current = NULL;
+    interrupts();
+    return true;
+  } else {
+    return false;
+  }
+}
+
+void Scheduler::reactivateTaskTimeoutIfRequired() {
+  if (!isWakeupByOtherInterrupt()) {
+    // woken up due to WDT interrupt in case of AVR
+    // always executed for esp
+    noInterrupts();
+    const TaskTimeout taskTimeoutLocal = taskTimeout;
+    interrupts();
+    if (taskTimeoutLocal != NO_SUPERVISION) {
+      // change back to taskTimeout
+      taskWdtReset();
+      taskWdtEnable(taskTimeoutLocal);
+#ifdef SUPERVISION_CALLBACK
+      wdtEnableInterrupt();
+#endif
+    } else {
+      // tasks are not supervised, deactivate WDT
+      taskWdtDisable();
+    }
+  } // else the wd is still running in case of AVR
+}
+
+void Scheduler::execute() {
+  setupTaskTimeoutIfConfigured();
+  while (true) {
+    bool hasExecuted = executeNextIfTime();
+    while (hasExecuted) {
+      hasExecuted = executeNextIfTime();
     }
 
     sleepIfRequired();
-
-    if (!isWakeupByOtherInterrupt()) {
-      // woken up due to WDT interrupt in case of AVR
-      // always executed for esp
-      noInterrupts();
-      const TaskTimeout taskTimeoutLocal = taskTimeout;
-      interrupts();
-      if (taskTimeoutLocal != NO_SUPERVISION) {
-        // change back to taskTimeout
-        taskWdtReset();
-        taskWdtEnable(taskTimeoutLocal);
-#ifdef SUPERVISION_CALLBACK
-        wdtEnableInterrupt();
-#endif
-      } else {
-        // tasks are not supervised, deactivate WDT
-        taskWdtDisable();
-      }
-    } // else the wd is still running in case of AVR
+    reactivateTaskTimeoutIfRequired();
   }
   // never executed so no need to deactivate the WDT
 }
