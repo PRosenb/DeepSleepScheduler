@@ -13,6 +13,7 @@
 // -------------------------------------------------------------------------------------------------
 
 unsigned long Scheduler::getMillis() const {
+  // read RTC clock which runs from initial boot/reset (also during sleep)
   // https://forum.makehackvoid.com/t/playing-with-the-esp-32/1144/11
   uint64_t rtcTime = rtc_time_get();
   uint64_t rtcTimeUs = rtcTime * 20 / 3;  // ticks -> us 1,000,000/150,000

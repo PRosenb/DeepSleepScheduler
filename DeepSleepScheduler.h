@@ -240,47 +240,42 @@ class Scheduler {
   private:
     class Task {
       public:
-        Task(const unsigned long scheduledUptimeMillis)
-          : scheduledUptimeMillis(scheduledUptimeMillis), next(NULL) {
+        Task(const unsigned long scheduledUptimeMillis, const bool isCallbackTask)
+          : scheduledUptimeMillis(scheduledUptimeMillis), isCallbackTask(isCallbackTask), next(NULL) {
         }
-        virtual ~Task() {}
-        virtual void execute() = 0;
-        // dynamic_cast is not supported by default as it compiles with -fno-rtti
-        // Therefore, we use this method to detect which Task type it is.
-        virtual bool isCallbackTask() = 0;
-        virtual bool equalCallback(Task *task) = 0;
+        void execute() {
+          // do in base class to prevent virtual method
+          if (isCallbackTask) {
+            ((CallbackTask*)this)->callback();
+          } else {
+            ((RunnableTask*)this)->runnable->run();
+          }
+        }
+        bool equalCallback(Task *task) {
+          // do in base class to prevent virtual method
+          if (isCallbackTask) {
+            return task->isCallbackTask && ((CallbackTask*)task)->callback == ((CallbackTask*)this)->callback;
+          } else {
+            return !task->isCallbackTask && ((RunnableTask*)task)->runnable == ((RunnableTask*)this)->runnable;
+          }
+        }
         const unsigned long scheduledUptimeMillis;
+        // dynamic_cast is not supported by default as it compiles with -fno-rtti
+        // Therefore, we use this variable to detect which Task type it is.
+        const bool isCallbackTask;
         Task *next;
     };
     class CallbackTask: public Task {
       public:
         CallbackTask(void (*callback)(), const unsigned long scheduledUptimeMillis)
-          : Task(scheduledUptimeMillis), callback(callback) {
-        }
-        virtual void execute() {
-          callback();
-        }
-        virtual bool isCallbackTask() {
-          return true;
-        }
-        virtual bool equalCallback(Task *task) {
-          return task->isCallbackTask() && ((CallbackTask*)task)->callback == callback;
+          : Task(scheduledUptimeMillis, true), callback(callback) {
         }
         void (* const callback)();
     };
     class RunnableTask: public Task {
       public:
         RunnableTask(Runnable *runnable, const unsigned long scheduledUptimeMillis)
-          : Task(scheduledUptimeMillis), runnable(runnable) {
-        }
-        virtual void execute() {
-          runnable->run();
-        }
-        virtual bool isCallbackTask() {
-          return false;
-        }
-        virtual bool equalCallback(Task *task) {
-          return !task->isCallbackTask() && ((RunnableTask*)task)->runnable == runnable;
+          : Task(scheduledUptimeMillis, false), runnable(runnable) {
         }
         Runnable * const runnable;
     };
@@ -436,7 +431,7 @@ bool Scheduler::isScheduled(void (*callback)()) const {
   noInterrupts();
   Task *currentTask = first;
   while (currentTask != NULL) {
-    if (currentTask->isCallbackTask() && ((CallbackTask*)currentTask)->callback == callback) {
+    if (currentTask->isCallbackTask && ((CallbackTask*)currentTask)->callback == callback) {
       scheduled = true;
       break;
     }
@@ -451,7 +446,7 @@ bool Scheduler::isScheduled(Runnable *runnable) const {
   noInterrupts();
   Task *currentTask = first;
   while (currentTask != NULL) {
-    if (!currentTask->isCallbackTask() && ((RunnableTask*)currentTask)->runnable == runnable) {
+    if (!currentTask->isCallbackTask && ((RunnableTask*)currentTask)->runnable == runnable) {
       scheduled = true;
       break;
     }
@@ -476,7 +471,7 @@ void Scheduler::removeCallbacks(void (*callback)()) {
     Task *previousTask = NULL;
     Task *currentTask = first;
     while (currentTask != NULL) {
-      if (currentTask->isCallbackTask() && ((CallbackTask*)currentTask)->callback == callback) {
+      if (currentTask->isCallbackTask && ((CallbackTask*)currentTask)->callback == callback) {
         Task *taskToDelete = currentTask;
         if (previousTask == NULL) {
           // remove the first task
@@ -501,7 +496,7 @@ void Scheduler::removeCallbacks(Runnable *runnable) {
     Task *previousTask = NULL;
     Task *currentTask = first;
     while (currentTask != NULL) {
-      if (!currentTask->isCallbackTask() && ((RunnableTask*)currentTask)->runnable == runnable) {
+      if (!currentTask->isCallbackTask && ((RunnableTask*)currentTask)->runnable == runnable) {
         Task *taskToDelete = currentTask;
         if (previousTask == NULL) {
           // remove the first task
