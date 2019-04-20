@@ -2,143 +2,50 @@
 #include <avr/sleep.h>
 #include <avr/wdt.h>
 
-// -------------------------------------------------------------------------------------------------
-// Definition (usually in H file)
-// -------------------------------------------------------------------------------------------------
-
-// values changeable by the user
-#ifndef SLEEP_MODE
-#define SLEEP_MODE SLEEP_MODE_PWR_DOWN
-#endif
-
-#ifndef SUPERVISION_CALLBACK_TIMEOUT
-#define SUPERVISION_CALLBACK_TIMEOUT WDTO_1S
-#endif
-
-#ifndef SLEEP_TIME_15MS_CORRECTION
-#define SLEEP_TIME_15MS_CORRECTION 3
-#endif
-#ifndef SLEEP_TIME_30MS_CORRECTION
-#define SLEEP_TIME_30MS_CORRECTION 4
-#endif
-#ifndef SLEEP_TIME_60MS_CORRECTION
-#define SLEEP_TIME_60MS_CORRECTION 7
-#endif
-#ifndef SLEEP_TIME_120MS_CORRECTION
-#define SLEEP_TIME_120MS_CORRECTION 13
-#endif
-#ifndef SLEEP_TIME_250MS_CORRECTION
-#define SLEEP_TIME_250MS_CORRECTION 15
-#endif
-#ifndef SLEEP_TIME_500MS_CORRECTION
-#define SLEEP_TIME_500MS_CORRECTION 28
-#endif
-#ifndef SLEEP_TIME_1S_CORRECTION
-#define SLEEP_TIME_1S_CORRECTION 54
-#endif
-#ifndef SLEEP_TIME_2S_CORRECTION
-#define SLEEP_TIME_2S_CORRECTION 106
-#endif
-#ifndef SLEEP_TIME_4S_CORRECTION
-#define SLEEP_TIME_4S_CORRECTION 209
-#endif
-#ifndef SLEEP_TIME_8S_CORRECTION
-#define SLEEP_TIME_8S_CORRECTION 415
-#endif
-
-// Constants
-// =========
-#define SLEEP_TIME_15MS 15 + SLEEP_TIME_15MS_CORRECTION
-#define SLEEP_TIME_30MS 30 + SLEEP_TIME_30MS_CORRECTION
-#define SLEEP_TIME_60MS 60 + SLEEP_TIME_60MS_CORRECTION
-#define SLEEP_TIME_120MS 120 + SLEEP_TIME_120MS_CORRECTION
-#define SLEEP_TIME_250MS 250 + SLEEP_TIME_250MS_CORRECTION
-#define SLEEP_TIME_500MS 500 + SLEEP_TIME_500MS_CORRECTION
-#define SLEEP_TIME_1S 1000 + SLEEP_TIME_1S_CORRECTION
-#define SLEEP_TIME_2S 2000 + SLEEP_TIME_2S_CORRECTION
-#define SLEEP_TIME_4S 4000 + SLEEP_TIME_4S_CORRECTION
-#define SLEEP_TIME_8S 8000 + SLEEP_TIME_8S_CORRECTION
-
-class SchedulerAvr: public Scheduler {
-  public:
-    SchedulerAvr();
-    /**
-      Do not call this method, it is used by the watchdog interrupt.
-    */
-    static void isrWdt();
-    virtual unsigned long getMillis() const {
-      unsigned long value;
-      noInterrupts();
-      value = millis() + millisInDeepSleep;
-      interrupts();
-      return value;
-    }
-  private:
-    // variables used in the interrupt
-    static volatile unsigned int wdtSleepTimeMillis;
-    static volatile unsigned long millisInDeepSleep;
-    static volatile unsigned long millisBeforeDeepSleep;
-    /**
-       Stores the time of the task from which the sleep time of the WDT is
-       calculated when it is put to sleep.
-       In case an interrupt schedules a new time, this time is compared against
-       it to check if the new time is before the WDT would wake up anyway.
-    */
-    unsigned long firstRegularlyScheduledUptimeAfterSleep;
-
-    virtual void taskWdtEnable(const uint8_t value);
-    virtual void taskWdtDisable();
-    virtual void taskWdtReset();
-    virtual void sleepIfRequired();
-    virtual bool isWakeupByOtherInterrupt();
-
-    virtual void wdtEnableInterrupt();
-    inline SleepMode evaluateSleepModeAndEnableWdtIfRequired();
-    inline unsigned long wdtEnableForSleep(unsigned long maxWaitTimeMillis);
-};
-
-extern SchedulerAvr scheduler;
-
 #ifndef LIBCALL_DEEP_SLEEP_SCHEDULER
 // -------------------------------------------------------------------------------------------------
 // Implementation (usuallly in CPP file)
 // -------------------------------------------------------------------------------------------------
-/**
-   the one and only instance of Scheduler
-*/
-SchedulerAvr scheduler;
 
-volatile unsigned int SchedulerAvr::wdtSleepTimeMillis;
-volatile unsigned long SchedulerAvr::millisInDeepSleep;
-volatile unsigned long SchedulerAvr::millisBeforeDeepSleep;
+volatile unsigned int Scheduler::wdtSleepTimeMillis;
+volatile unsigned long Scheduler::millisInDeepSleep;
+volatile unsigned long Scheduler::millisBeforeDeepSleep;
 
-SchedulerAvr::SchedulerAvr() {
+void Scheduler::init() {
   wdtSleepTimeMillis = 0;
   millisInDeepSleep = 0;
   millisBeforeDeepSleep = 0;
   firstRegularlyScheduledUptimeAfterSleep = 0;
 }
 
-void SchedulerAvr::taskWdtEnable(const uint8_t value) {
+unsigned long Scheduler::getMillis() const {
+  unsigned long value;
+  noInterrupts();
+  value = millis() + millisInDeepSleep;
+  interrupts();
+  return value;
+}
+
+void Scheduler::taskWdtEnable(const uint8_t value) {
   wdt_enable(value);
 }
 
-void SchedulerAvr::taskWdtDisable() {
+void Scheduler::taskWdtDisable() {
   wdt_disable();
 }
 
-void SchedulerAvr::taskWdtReset() {
+void Scheduler::taskWdtReset() {
   wdt_reset();
 }
 
-bool SchedulerAvr::isWakeupByOtherInterrupt() {
+bool Scheduler::isWakeupByOtherInterrupt() {
   noInterrupts();
   unsigned long wdtSleepTimeMillisLocal = wdtSleepTimeMillis;
   interrupts();
   return wdtSleepTimeMillisLocal != 0;
 }
 
-void SchedulerAvr::sleepIfRequired() {
+void Scheduler::sleepIfRequired() {
   // Enable sleep bit with sleep_enable() before the sleep time evaluation because it can happen
   // that the WDT interrupt occurs during sleep time evaluation but before the CPU
   // sleeps. In that case, the WDT interrupt clears the sleep bit and the CPU will not sleep
@@ -195,7 +102,7 @@ void SchedulerAvr::sleepIfRequired() {
   sleep_disable();
 }
 
-inline Scheduler::SleepMode SchedulerAvr::evaluateSleepModeAndEnableWdtIfRequired() {
+inline Scheduler::SleepMode Scheduler::evaluateSleepModeAndEnableWdtIfRequired() {
   noInterrupts();
   unsigned long wdtSleepTimeMillisLocal = wdtSleepTimeMillis;
   unsigned long currentSchedulerMillis = getMillis();
@@ -263,7 +170,7 @@ inline Scheduler::SleepMode SchedulerAvr::evaluateSleepModeAndEnableWdtIfRequire
   return sleepMode;
 }
 
-inline unsigned long SchedulerAvr::wdtEnableForSleep(const unsigned long maxWaitTimeMillis) {
+inline unsigned long Scheduler::wdtEnableForSleep(const unsigned long maxWaitTimeMillis) {
   unsigned long wdtSleepTimeMillis;
   if (maxWaitTimeMillis >= SLEEP_TIME_8S + BUFFER_TIME) {
     wdtSleepTimeMillis = SLEEP_TIME_8S;
@@ -299,7 +206,7 @@ inline unsigned long SchedulerAvr::wdtEnableForSleep(const unsigned long maxWait
   return wdtSleepTimeMillis;
 }
 
-void SchedulerAvr::isrWdt() {
+void Scheduler::isrWdt() {
   sleep_disable();
   millisInDeepSleep += wdtSleepTimeMillis;
   millisInDeepSleep -= millis() - millisBeforeDeepSleep;
@@ -323,7 +230,7 @@ void SchedulerAvr::isrWdt() {
 /**
   first timeout will be the interrupt, second system reset
 */
-void SchedulerAvr::wdtEnableInterrupt() {
+void Scheduler::wdtEnableInterrupt() {
   // http://forum.arduino.cc/index.php?topic=108870.0
 #if defined( __AVR_ATtiny25__ ) || defined( __AVR_ATtiny45__ ) || defined( __AVR_ATtiny85__ ) || defined( __AVR_ATtiny87__ ) || defined( __AVR_ATtiny167__ )
   WDTCR |= (1 << WDCE) | (1 << WDIE);
@@ -334,7 +241,7 @@ void SchedulerAvr::wdtEnableInterrupt() {
 
 ISR (WDT_vect) {
   // WDIE & WDIF is cleared in hardware upon entering this ISR
-  SchedulerAvr::isrWdt();
+  Scheduler::isrWdt();
 }
 
 #endif // #ifndef LIBCALL_DEEP_SLEEP_SCHEDULER

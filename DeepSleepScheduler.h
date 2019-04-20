@@ -40,6 +40,9 @@
 // Definition (usually in H file)
 // -------------------------------------------------------------------------------------------------
 #include <Arduino.h>
+#if defined(ESP32) || defined(ESP8266)
+#include "DeepSleepScheduler_esp_includes.h"
+#endif
 
 #define BUFFER_TIME 2
 #define NOT_USED 255
@@ -206,7 +209,7 @@ class Scheduler {
                This value does not consider the time when the CPU is in infinite deep sleep
                while nothing is in the queue.
     */
-    virtual unsigned long getMillis() const = 0;
+    unsigned long getMillis() const;
 
 #ifdef SUPERVISION_CALLBACK
 #ifdef ESP8266
@@ -291,7 +294,7 @@ class Scheduler {
     void insertTaskAndRemoveExisting(Task *newTask);
     void deleteTask(Task *taskToDelete, Task *previousTask);
 
-  protected:
+  private:
     enum SleepMode {
       NO_SLEEP,
       IDLE,
@@ -322,27 +325,38 @@ class Scheduler {
     unsigned long lastTaskFinishedMillis;
 #endif
 
-    virtual void taskWdtEnable(const uint8_t value) = 0;
-    virtual void taskWdtReset() = 0;
-    virtual void taskWdtDisable() = 0;
-    virtual void sleepIfRequired() = 0;
-    // only used by AVR as the watchdog timer is used
-    virtual bool isWakeupByOtherInterrupt() {
-      return false;
-    }
-
-    // default does nothing, only used for AVR
-    virtual void wdtEnableInterrupt() {}
-
     inline void setupTaskTimeoutIfConfigured();
     inline bool executeNextIfTime();
     inline void reactivateTaskTimeoutIfRequired();
+
+    // These methods MUST be defined by the definition include
+    // void taskWdtEnable(const uint8_t value);
+    // void taskWdtReset();
+    // void taskWdtDisable();
+    // void sleepIfRequired();
+    //
+    // // only used by AVR as the watchdog timer is used
+    // bool isWakeupByOtherInterrupt();
+    //
+    // // only used for AVR
+    // void wdtEnableInterrupt();
+#if defined(ESP32) || defined(ESP8266)
+#include "DeepSleepScheduler_esp_definition.h"
+#else
+#include "DeepSleepScheduler_avr_definition.h"
+#endif
 };
+
+extern Scheduler scheduler;
 
 #ifndef LIBCALL_DEEP_SLEEP_SCHEDULER
 // -------------------------------------------------------------------------------------------------
 // Implementation (usuallly in CPP file)
 // -------------------------------------------------------------------------------------------------
+/**
+   the one and only instance of Scheduler
+*/
+Scheduler scheduler;
 
 #ifdef SUPERVISION_CALLBACK
 Runnable *Scheduler::supervisionCallbackRunnable;
@@ -357,6 +371,8 @@ Scheduler::Scheduler() {
   first = NULL;
   current = NULL;
   noSleepLocksCount = 0;
+
+  init();
 }
 
 void Scheduler::schedule(void (*callback)()) {
@@ -681,9 +697,9 @@ void Scheduler::execute() {
 #endif // #ifndef LIBCALL_DEEP_SLEEP_SCHEDULER
 
 #if defined(ESP32) || defined(ESP8266)
-#include "DeepSleepScheduler_esp.h"
+#include "DeepSleepScheduler_esp_implementation.h"
 #else
-#include "DeepSleepScheduler_avr.h"
+#include "DeepSleepScheduler_avr_implementation.h"
 #endif
 
 #endif // #ifndef DEEP_SLEEP_SCHEDULER_H
