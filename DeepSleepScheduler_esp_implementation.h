@@ -12,6 +12,8 @@
 // Implementation (usuallly in CPP file)
 // -------------------------------------------------------------------------------------------------
 
+#ifdef ESP32
+// -------------------------------------------------------------------------------------------------
 unsigned long Scheduler::getMillis() const {
   // read RTC clock which runs from initial boot/reset (also during sleep)
   // https://forum.makehackvoid.com/t/playing-with-the-esp-32/1144/11
@@ -20,8 +22,6 @@ unsigned long Scheduler::getMillis() const {
   return rtcTimeUs / 1000;
 }
 
-#ifdef ESP32
-// -------------------------------------------------------------------------------------------------
 void Scheduler::isrWatchdogExpiredStatic() {
 #ifdef SUPERVISION_CALLBACK
   if (supervisionCallbackRunnable != NULL) {
@@ -80,6 +80,11 @@ void Scheduler::taskWdtReset() {
 
 #elif ESP8266
 // -------------------------------------------------------------------------------------------------
+unsigned long Scheduler::getMillis() const {
+  // on ESP8266 we do not support sleep, so millis() stays correct.
+  return millis();
+}
+
 void Scheduler::taskWdtEnable(const uint8_t value) {
   const unsigned long durationMs = wdtTimeoutToDurationMs(value);
   ESP.wdtEnable(durationMs);

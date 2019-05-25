@@ -18,10 +18,6 @@ private:
 hw_timer_t *timer = NULL;
 #elif ESP8266
 public:
-unsigned long getMillis() const {
-  // on ESP8266 we do not support sleep, so millis() stays correct.
-  return millis();
-}
 #endif
 // ---------------------------------------------------------------------------------------------
 
