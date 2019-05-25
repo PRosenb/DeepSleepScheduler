@@ -195,7 +195,7 @@ class Scheduler {
     /**
       return: true if the CPU is currently allowed to enter sleep, false otherwise.
     */
-    bool doesSleep() const;
+    inline bool doesSleep() const;
 
     /**
       Configure the supervision of future tasks. Can be deactivated with NO_SUPERVISION.
