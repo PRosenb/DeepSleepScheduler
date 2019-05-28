@@ -11,6 +11,7 @@
 // -------------------------------------------------------------------------------------------------
 // Implementation (usuallly in CPP file)
 // -------------------------------------------------------------------------------------------------
+#define ESP8266_MAX_DELAY_TIME_WDT_MS 7500
 void Scheduler::init() {}
 
 #ifdef ESP32
@@ -271,7 +272,18 @@ void Scheduler::sleep(unsigned long durationMs, bool queueEmpty) {
     durationMs = ESP8266_MAX_DELAY_TIME_MS;
   }
 #endif
-  delay(durationMs);
+  if (durationMs > ESP8266_MAX_DELAY_TIME_WDT_MS) {
+    long durationMsRemaining = durationMs;
+    while (durationMsRemaining > ESP8266_MAX_DELAY_TIME_WDT_MS) {
+      durationMsRemaining -= ESP8266_MAX_DELAY_TIME_WDT_MS;
+      delay(ESP8266_MAX_DELAY_TIME_WDT_MS);
+      ESP.wdtFeed();
+    }
+    delay(durationMsRemaining);
+    ESP.wdtFeed();
+  } else {
+    delay(durationMs);
+  }
 }
 #endif
 // -------------------------------------------------------------------------------------------------
