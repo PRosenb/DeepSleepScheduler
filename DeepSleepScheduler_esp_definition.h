@@ -6,6 +6,9 @@
 #define ESP32_TASK_WDT_TIMER_NUMBER 3
 #endif
 
+private:
+void init();
+
 #ifdef ESP32
 // ---------------------------------------------------------------------------------------------
 public:
