@@ -332,7 +332,7 @@ HIGH = active, LOW = sleeping
 - `#ESP32_TASK_WDT_TIMER_NUMBER`: Specifies the timer number to be used for task supervision. Default is 3.
 
 #### ESP8266 specific options ####
-- `ESP8266_MAX_DELAY_TIME_MS`: The maximum time in milliseconds the CPU will be delayed while no task is scheduled. Default is infinite. Set this value if you expect interrupts while no task is running.
+- `ESP8266_MAX_DELAY_TIME_MS`: The maximum time in milliseconds the CPU will be delayed while no task is scheduled. Default is 7000 due to the watchdog timeout of 8 seconds. Set this value lower if you expect interrupts while no task is running.
 
 ## Implementation Notes ##
 ### General ###

@@ -267,23 +267,12 @@ void Scheduler::sleep(unsigned long durationMs, bool queueEmpty) {
   }
 #endif
 
-#ifdef ESP8266_MAX_DELAY_TIME_MS
   if (durationMs > ESP8266_MAX_DELAY_TIME_MS) {
     durationMs = ESP8266_MAX_DELAY_TIME_MS;
   }
-#endif
-  if (durationMs > ESP8266_MAX_DELAY_TIME_WDT_MS) {
-    long durationMsRemaining = durationMs;
-    while (durationMsRemaining > ESP8266_MAX_DELAY_TIME_WDT_MS) {
-      durationMsRemaining -= ESP8266_MAX_DELAY_TIME_WDT_MS;
-      delay(ESP8266_MAX_DELAY_TIME_WDT_MS);
-      ESP.wdtFeed();
-    }
-    delay(durationMsRemaining);
-    ESP.wdtFeed();
-  } else {
-    delay(durationMs);
-  }
+
+  delay(durationMs);
+  ESP.wdtFeed();
 }
 #endif
 // -------------------------------------------------------------------------------------------------

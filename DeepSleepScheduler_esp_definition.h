@@ -5,6 +5,9 @@
 #ifndef ESP32_TASK_WDT_TIMER_NUMBER
 #define ESP32_TASK_WDT_TIMER_NUMBER 3
 #endif
+#ifndef ESP8266_MAX_DELAY_TIME_MS
+#define ESP8266_MAX_DELAY_TIME_MS 7000
+#endif
 
 private:
 void init();
