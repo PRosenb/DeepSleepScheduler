@@ -29,6 +29,7 @@ doesSleep	KEYWORD2
 setTaskTimeout	KEYWORD2
 getMillis	KEYWORD2
 setSupervisionCallback	KEYWORD2
+taskWdtReset	KEYWORD2
 execute	KEYWORD2
 
 #######################################

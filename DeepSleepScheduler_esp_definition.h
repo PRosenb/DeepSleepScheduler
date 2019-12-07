@@ -30,7 +30,6 @@ public:
 private:
 void taskWdtEnable(const uint8_t value);
 void taskWdtDisable();
-void taskWdtReset();
 inline unsigned long wdtTimeoutToDurationMs(const uint8_t value);
 void sleepIfRequired();
 inline void sleep(unsigned long durationMs, bool queueEmpty);

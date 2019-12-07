@@ -78,7 +78,6 @@ unsigned long firstRegularlyScheduledUptimeAfterSleep;
 
 void taskWdtEnable(const uint8_t value);
 inline void taskWdtDisable();
-inline void taskWdtReset();
 inline void sleepIfRequired();
 bool isWakeupByOtherInterrupt();
 

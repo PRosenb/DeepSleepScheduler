@@ -205,6 +205,12 @@ class Scheduler {
     void setTaskTimeout(TaskTimeout taskTimeout);
 
     /**
+       Resets the task watchdog. After this call returns, the currently running
+       Task can run up to the configured TaskTimeout set by setTaskTimeout().
+    */
+    void taskWdtReset();
+
+    /**
       return: The milliseconds since startup of the device where the sleep time was added.
               This value does not consider the time when the CPU is in infinite deep sleep
               while nothing is in the queue.
