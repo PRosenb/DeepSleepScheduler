@@ -19,7 +19,7 @@ public:
 /**
     Do not call this method, it is used by the watchdog interrupt.
 */
-static void isrWatchdogExpiredStatic();
+static void IRAM_ATTR isrWatchdogExpiredStatic();
 private:
 hw_timer_t *timer = NULL;
 #elif ESP8266

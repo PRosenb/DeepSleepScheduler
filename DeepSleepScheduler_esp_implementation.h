@@ -24,7 +24,7 @@ unsigned long Scheduler::getMillis() const {
   return rtcTimeUs / 1000;
 }
 
-void Scheduler::isrWatchdogExpiredStatic() {
+void IRAM_ATTR Scheduler::isrWatchdogExpiredStatic() {
 #ifdef SUPERVISION_CALLBACK
   if (supervisionCallbackRunnable != NULL) {
     // No need to supervise this call as this interrupt has a time limit.

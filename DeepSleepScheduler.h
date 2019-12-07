@@ -218,7 +218,9 @@ class Scheduler {
     /**
       Sets the runnable to be called when the task supervision detects a task that runs too long.
       The run() method will be called from the watchdog interrupt what means, that
-      e.g. the method delay() does not work. When run() returns, the CPU will be restarted after 15ms.
+      e.g. the method delay() does not work.
+      On AVR, when run() returns, the CPU will be restarted after 15ms.
+      On ESP32, the interrupt service routine as a whole has a time limit.
       See description of SUPERVISION_CALLBACK and SUPERVISION_CALLBACK_TIMEOUT.
       @param runnable: instance of Runnable where the run() method is called
     */
