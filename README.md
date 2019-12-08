@@ -219,6 +219,7 @@ void scheduleAtFrontOfQueue(Runnable *runnable);
   @param callback: callback to check
 */
 bool isScheduled(void (*callback)()) const;
+
 /**
   Check if this runnable is scheduled at least once already.
   This method can be called in an interrupt but bear in mind, that it loops through
@@ -272,6 +273,12 @@ bool doesSleep() const;
 void setTaskTimeout(TaskTimeout taskTimeout);
 
 /**
+   Resets the task watchdog. After this call returns, the currently running
+   Task can run up to the configured TaskTimeout set by setTaskTimeout().
+*/
+void taskWdtReset();
+
+/**
   return: The milliseconds since startup of the device where the sleep time was added.
           This value does not consider the time when the CPU is in infinite deep sleep
           while nothing is in the queue.
@@ -281,7 +288,10 @@ unsigned long getMillis() const;
 /**
   Sets the runnable to be called when the task supervision detects a task that runs too long.
   The run() method will be called from the watchdog interrupt what means, that
-  e.g. the method delay() does not work. When run() returns, the CPU will be restarted after 15ms.
+  e.g. the method delay() does not work.
+  On AVR, when run() returns, the CPU will be restarted after 15ms.
+  On ESP32, the interrupt service routine as a whole has a time limit and calls
+  abort() when returning from this method.
   See description of SUPERVISION_CALLBACK and SUPERVISION_CALLBACK_TIMEOUT.
   @param runnable: instance of Runnable where the run() method is called
 */
