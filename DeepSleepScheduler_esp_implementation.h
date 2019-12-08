@@ -33,8 +33,8 @@ void IRAM_ATTR Scheduler::isrWatchdogExpiredStatic() {
   }
 #endif
 
-  Serial.println(F("watchdog reboot"));
-  esp_restart();
+  ets_printf("Watchdog abort by DeepSleepScheduler\n");
+  ESP_ERROR_CHECK(ESP_ERR_TIMEOUT);
 }
 
 /**
