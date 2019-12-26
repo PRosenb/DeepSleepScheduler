@@ -1,5 +1,8 @@
 /*
-   Show when the CPU is sleep mode (LED off) and active (LED on).
+   Shows when the CPU is in sleep mode (LED off) and active (LED on).
+   Please not that the CPU is not put to deep sleep for schedule times
+   shorter than 1 second. For these, it uses SLEEP_MODE_IDLE.
+
    You will notice, that it's not on in full brightness because
    the CPU is sleeping shortly almost all the time when it is set
    to SLEEP_MODE_IDLE. In that case, it wakes up on every timer tick
