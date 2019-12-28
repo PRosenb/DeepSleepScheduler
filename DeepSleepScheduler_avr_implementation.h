@@ -124,12 +124,12 @@ inline Scheduler::SleepMode Scheduler::evaluateSleepModeAndEnableWdtIfRequired()
 
     if (maxWaitTimeMillis == 0) {
       sleepMode = NO_SLEEP;
-    } else if (!doesSleep() || maxWaitTimeMillis < SLEEP_TIME_1S + BUFFER_TIME
+    } else if (!doesSleep() || maxWaitTimeMillis < MIN_WAIT_TIME_FOR_SLEEP + BUFFER_TIME
 #ifdef SLEEP_DELAY
                || millis() < lastTaskFinishedMillis + SLEEP_DELAY
 #endif
               ) {
-      // use SLEEP_MODE_IDLE for values less then SLEEP_TIME_1S
+      // use SLEEP_MODE_IDLE for values less then MIN_WAIT_TIME_FOR_SLEEP
       sleepMode = IDLE;
     } else {
       sleepMode = SLEEP;

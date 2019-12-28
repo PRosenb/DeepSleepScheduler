@@ -336,6 +336,7 @@ HIGH = active, LOW = sleeping
 
 #### AVR specific options ####
 - `#define SLEEP_MODE`: Specifies the sleep mode entered when doing deep sleep. Default is `SLEEP_MODE_PWR_DOWN`.
+- `#define MIN_WAIT_TIME_FOR_SLEEP`: Specify the minimum wait time (until the next task will be executed) to put the CPU in sleep mode. Default is 1 second.
 - `#define SLEEP_TIME_XXX_CORRECTION`: Adjust the sleep time correction for the time when the CPU is in `SLEEP_MODE_PWR_DOWN` and waking up. See [Implementation Notes](#implementation-notes) and example [AdjustSleepTimeCorrections](https://github.com/PRosenb/DeepSleepScheduler/blob/master/examples/AdjustSleepTimeCorrections/AdjustSleepTimeCorrections.ino).
 
 #### ESP32 specific options ###
