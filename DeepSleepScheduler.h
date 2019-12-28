@@ -21,17 +21,12 @@
   - #define LIBCALL_DEEP_SLEEP_SCHEDULER: This h file can only be included once within a project as it also contains the implementation.
     To use it in multiple files, define LIBCALL_DEEP_SLEEP_SCHEDULER before all include statements except one.
   All following options are to be set before the include where no LIBCALL_DEEP_SLEEP_SCHEDULER is defined.
-  - #define SLEEP_MODE: Specifies the sleep mode entered when doing deep sleep. Default is SLEEP_MODE_PWR_DOWN.
   - #define SLEEP_DELAY: Prevent the CPU from entering sleep for the specified amount of milli seconds after finishing the previous task.
   - #define SUPERVISION_CALLBACK: Allows to specify a callback Runnable to be called when a task runs too long. When
     the callback returns, the CPU is restarted after 15 ms by the watchdog. The callback method is called directly
     from the watchdog interrupt. This means that e.g. delay() does not work.
   - #define SUPERVISION_CALLBACK_TIMEOUT: Specify the timeout of the callback on AVR until the watchdog resets the CPU. Defaults to WDTO_1S.
-  - #define MIN_WAIT_TIME_FOR_SLEEP: Specify the minimum wait time (until the next task will be executed) to put the CPU in sleep mode.
   - #define AWAKE_INDICATION_PIN: Show on a LED if the CPU is active or in sleep mode. HIGH = active, LOW = sleeping.
-  - #define SLEEP_TIME_XXX_CORRECTION: When the CPU wakes up from SLEEP_MODE_PWR_DOWN, it needs some cycles to get active. This is also dependent on
-    the used CPU type. Using the constants SLEEP_TIME_15MS_CORRECTION to SLEEP_TIME_8S_CORRECTION you can define more exact values for your
-    CPU. Please report values back to me if you do some measuring, thanks.
 */
 
 #ifndef DEEP_SLEEP_SCHEDULER_H
