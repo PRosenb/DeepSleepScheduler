@@ -14,13 +14,6 @@ DeepSleepScheduler is a lightweight, cooperative task scheduler library with con
   - ESP8266 (no sleep support)
 - Configurable sleep with `SLEEP_MODE_PWR_DOWN` or `SLEEP_MODE_IDLE` while no task is running (on AVR)
 
-## Migration from 2.xx to 3.0.0 ##
-The following methods/defines where renamed to add support for ESP32 and ESP8266.
-- `acquireNoDeepSleepLock()` => `acquireNoSleepLock()`
-- `releaseNoDeepSleepLock()` => `releaseNoSleepLock()`
-- `doesDeepSleep()` => `doesSleep()`
-- `#define DEEP_SLEEP_DELAY` => `#define SLEEP_DELAY`
-
 ## Installation ##
 - The library can be installed directly in the [Arduino Software (IDE)](https://www.arduino.cc/en/Main/Software) as follows:
   - Menu Sketch->Include Library->Manage Libraries...
